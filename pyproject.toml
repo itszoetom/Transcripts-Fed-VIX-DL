@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "transcripts-fed-vix"
+version = "0.1.0"
+description = "Predicting VIX from FOMC transcript text using sequence models."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "torch",
+    "transformers",
+    "pandas",
+    "numpy",
+    "scikit-learn",
+    "PyYAML",
+    "tqdm",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ipython", "jupyter"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

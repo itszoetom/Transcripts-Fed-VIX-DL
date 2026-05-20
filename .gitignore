@@ -1,0 +1,34 @@
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# Editor
+.DS_Store
+.idea/
+.vscode/
+*~
+
+# Project outputs
+outputs/
+slurm_logs/
+*.out
+*.err
+*.pt
+*.ckpt
+
+# Data (don't commit raw data to git)
+data/raw/
+data/processed/
+data/*.csv
+data/*.parquet
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Local secrets
+.env

@@ -1,0 +1,34 @@
+# Default training config for the transcript -> VIX model.
+
+# Data
+data_dir: data/processed
+transcripts_file: transcripts.parquet
+vix_file: vix.csv
+target_horizon_days: 5         # predict VIX N days after transcript date
+val_fraction: 0.2
+test_fraction: 0.1
+seed: 42
+
+# Tokenizer / encoder
+pretrained_model: distilbert-base-uncased
+max_length: 512                # transcripts are long; chunk if needed
+chunk_strategy: head            # "head", "tail", or "mean_pool_chunks"
+
+# Model
+encoder_type: distilbert        # distilbert | lstm | transformer
+freeze_encoder: false
+hidden_dim: 128
+dropout: 0.1
+output_type: regression         # regression | classification
+
+# Training
+batch_size: 8                   # transformers are memory-heavy
+num_workers: 2
+epochs: 5
+learning_rate: 2e-5
+weight_decay: 0.01
+gradient_clip: 1.0
+
+# Output
+model_file: outputs/model.pt
+metrics_file: outputs/train_metrics.txt
