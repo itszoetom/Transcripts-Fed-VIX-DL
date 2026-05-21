@@ -108,7 +108,12 @@ def _session() -> requests.Session:
 
 
 def _fetch_bytes(sess: requests.Session, url: str, *, retries: int = 3) -> bytes:
-    """GET `url` returning raw bytes, with retries and a polite delay."""
+    """GET `url` returning raw bytes, with retries and a polite delay.
+
+    404 / 410 are NOT retried because they're permanent — retrying just adds
+    latency to the scrape without ever recovering. Transient errors (5xx,
+    connection drops) still get exponential-backoff retries.
+    """
     last_exc: Exception | None = None
     for attempt in range(retries):
         try:
@@ -116,7 +121,15 @@ def _fetch_bytes(sess: requests.Session, url: str, *, retries: int = 3) -> bytes
             resp.raise_for_status()
             time.sleep(REQUEST_DELAY_SEC)
             return resp.content
-        except Exception as exc:  # noqa: BLE001 — broad on purpose, we retry
+        except requests.HTTPError as exc:
+            status = exc.response.status_code if exc.response is not None else None
+            if status in (404, 410):
+                # Permanent failure — surface immediately.
+                raise
+            last_exc = exc
+            logger.warning("fetch failed (%s/%s) %s: %s", attempt + 1, retries, url, exc)
+            time.sleep(2 ** attempt)
+        except Exception as exc:  # noqa: BLE001 — retry transient errors
             last_exc = exc
             logger.warning("fetch failed (%s/%s) %s: %s", attempt + 1, retries, url, exc)
             time.sleep(2 ** attempt)  # exponential backoff
@@ -175,9 +188,20 @@ def _normalize_whitespace(s: str) -> str:
 # FOMC minutes
 # ---------------------------------------------------------------------------
 
-# Filename pattern used in modern Fed URLs: fomcminutesYYYYMMDD.<ext>
+# FOMC minutes URLs come in four families across the Fed's history:
+#
+#   1. /fomc/MINUTES/{YYYY}/{YYYYMMDD}min.htm            (1993 .. 1995)
+#   2. /fomc/minutes/{YYYYMMDD}.htm                      (~1996 .. 2007)
+#   3. /monetarypolicy/fomcminutes{YYYYMMDD}.htm|pdf     (~2007 .. 2020)
+#   4. /monetarypolicy/files/fomcminutes{YYYYMMDD}.pdf   (~2020 .. present)
+#
+# Single regex handling all four: the date appears either after
+# "/fomc/minutes/" (optionally with a year subdir for the very early layout)
+# or after "fomcminutes" (modern layout, optionally nested under /files/).
+# The trailing `min` suffix is optional and only present in the 1993–1995
+# layout. Case-insensitive because the early-1990s URLs use uppercase MINUTES.
 _FOMC_MINUTES_URL_RE = re.compile(
-    r"/(?:monetarypolicy|fomc)/fomcminutes(?P<date>\d{8})\.(?P<ext>htm|pdf)",
+    r"(?:fomc/minutes/(?:\d{4}/)?|fomcminutes)(?P<date>\d{8})(?:min)?\.(?P<ext>htm|pdf)",
     re.IGNORECASE,
 )
 
@@ -321,10 +345,16 @@ _HH_TITLE_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Year-by-year testimony archive URLs.
-_HH_INDEX_URLS = [f"{FED_HOST}/newsevents/testimony/{year}-testimony.htm"
-                  for year in range(2006, date.today().year + 1)]
-# Plus the current-year landing page.
+# Year-by-year testimony archive URLs. The Fed changed conventions mid-decade:
+#   2006 .. ~2015: /newsevents/testimony/{YYYY}testimony.htm   (no dash)
+#   ~2016 .. now: /newsevents/testimony/{YYYY}-testimony.htm   (with dash)
+# Rather than hard-code the cutover year, we try both per year and 404s for
+# the wrong one are fast-failed (no retries) by `_fetch_bytes`.
+_HH_INDEX_URLS: list[str] = []
+for year in range(2006, date.today().year + 1):
+    _HH_INDEX_URLS.append(f"{FED_HOST}/newsevents/testimony/{year}testimony.htm")
+    _HH_INDEX_URLS.append(f"{FED_HOST}/newsevents/testimony/{year}-testimony.htm")
+# Plus the current-year landing page (most recent items).
 _HH_INDEX_URLS.append(f"{FED_HOST}/newsevents/testimony.htm")
 # Pre-2006 testimony lives at /boarddocs/hh/{YYYY}/(february|july)/testimony.htm etc.
 # Coverage is patchy; we attempt a known pattern.
