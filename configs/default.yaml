@@ -1,34 +1,129 @@
-# Default training config for the transcript -> VIX model.
+# Default config for the frozen-FinBERT + sentence-attention VIX model.
+#
+# Architecture summary (all design choices documented in source-module
+# docstrings):
+#
+#   raw FOMC minutes / Humphrey-Hawkins testimony
+#     -> first 80 sentences (NLTK punkt; no chunking, no head-truncation)
+#       -> frozen FinBERT (yiyanghkust/finbert-pretrain) + mean-pool per sentence
+#         -> additive (Bahdanau-style) attention aggregation         [TRAINED]
+#           -> linear regression head                                [TRAINED]
+#             -> predicted 3-day forward VIX change
+#
+# Target: 3-day close-to-close VIX change, next-trading-day aligned. Splits
+# anchored to U.S. presidential inauguration days (Trump1, Biden, Trump2).
+#
+# Use this config as the canonical reference: all scripts read it and have no
+# hard-coded values that override it.
 
-# Data
-data_dir: data/processed
-transcripts_file: transcripts.parquet
-vix_file: vix.csv
-target_horizon_days: 5         # predict VIX N days after transcript date
-val_fraction: 0.2
-test_fraction: 0.1
+# ---------------------------------------------------------------------------
+# Reproducibility
+# ---------------------------------------------------------------------------
 seed: 42
 
-# Tokenizer / encoder
-pretrained_model: distilbert-base-uncased
-max_length: 512                # transcripts are long; chunk if needed
-chunk_strategy: head            # "head", "tail", or "mean_pool_chunks"
+# ---------------------------------------------------------------------------
+# Data
+# ---------------------------------------------------------------------------
+data:
+  # Raw scraped HTML/PDF + extracted text caches live here.
+  raw_dir: data/raw
+  # Processed parquet (one row per document) + cached embeddings live here.
+  processed_dir: data/processed
+  documents_file: documents.parquet
+  embeddings_file: sentence_embeddings.pt
 
+  # Hard cap on sentences per document. The first 80 sentences contain the
+  # policy rationale; later sections (voting record, operational details)
+  # are lower signal. See src/transcripts_fed_vix/data/segment.py for the
+  # full rationale.
+  sentence_cap: 80
+
+  # 3-day close-to-close VIX change as target. When release dates fall on a
+  # weekend/holiday, align to the NEXT trading day (no look-ahead leakage).
+  target_horizon_trading_days: 3
+
+# ---------------------------------------------------------------------------
+# Temporal splits — locked by design discussion
+# ---------------------------------------------------------------------------
+splits:
+  # Anchor split boundaries at U.S. presidential inauguration days because the
+  # secondary research question is whether the model degrades across regimes.
+  train_end_date: "2017-01-20"        # Trump 1 inauguration
+  regime2_start_date: "2021-01-20"    # Biden inauguration
+  regime3_start_date: "2025-01-20"    # Trump 2 inauguration
+
+  # Carve val (early-stopping signal only) from the LAST 15% chronologically
+  # of the pre-2017 training pool. NEVER any random shuffling.
+  val_fraction: 0.15
+
+# ---------------------------------------------------------------------------
 # Model
-encoder_type: distilbert        # distilbert | lstm | transformer
-freeze_encoder: false
-hidden_dim: 128
-dropout: 0.1
-output_type: regression         # regression | classification
+# ---------------------------------------------------------------------------
+model:
+  # The encoder is FULLY frozen — no gradient flows back through these weights.
+  # We pick the MLM-pretrained FinBERT (not the sentiment-fine-tuned variant)
+  # because we want general financial-domain language representations, not the
+  # tone-classification head's bias.
+  encoder_checkpoint: yiyanghkust/finbert-pretrain
+  freeze_encoder: true
 
+  # FinBERT-base is 768-dimensional.
+  embed_dim: 768
+
+  # Per-sentence token limit for FinBERT. Fed-document sentences are nearly
+  # always under 128 tokens; 256 is a safety margin that keeps batched memory
+  # predictable on the A100.
+  max_sentence_tokens: 256
+
+  # Mini-batch size used inside FinBERTEncoder.encode_sentences during the
+  # one-time precompute step.
+  sentence_encode_batch_size: 32
+
+  # Additive-attention hidden dimension. ~100k parameters with embed_dim=768.
+  attn_dim: 128
+
+  # Light dropout on the aggregated document vector for regularization.
+  dropout: 0.1
+
+  # "auto" -> CUDA if available, else CPU. Set explicitly to "cpu" for
+  # cluster-side smoke tests.
+  device: auto
+
+# ---------------------------------------------------------------------------
 # Training
-batch_size: 8                   # transformers are memory-heavy
-num_workers: 2
-epochs: 5
-learning_rate: 2e-5
-weight_decay: 0.01
-gradient_clip: 1.0
+# ---------------------------------------------------------------------------
+training:
+  # AdamW on the head only (the encoder is frozen). The learning rate is
+  # higher than the conventional BERT-fine-tune 2e-5 because we're training
+  # a small head from scratch, not fine-tuning a 110M-param backbone.
+  learning_rate: 3.0e-4
+  weight_decay: 1.0e-4
+  batch_size: 8
 
-# Output
-model_file: outputs/model.pt
-metrics_file: outputs/train_metrics.txt
+  # 30-epoch budget; early stopping on val MSE controls the actual stop point.
+  epochs: 30
+  warmup_fraction: 0.1            # linear LR warmup over the first 10% of steps
+  grad_clip_norm: 1.0
+  early_stop_patience: 5          # stop if val MSE hasn't improved in 5 epochs
+
+# ---------------------------------------------------------------------------
+# Regime-change analysis
+# ---------------------------------------------------------------------------
+regime_analysis:
+  # Chow-test breakpoints on the model's prediction residuals. Required: the
+  # 2017 boundary. Optional: the 2025 boundary (sparse data may make this
+  # underpowered).
+  chow_breakpoints:
+    - "2017-01-20"
+    - "2025-01-20"
+
+# ---------------------------------------------------------------------------
+# Outputs
+# ---------------------------------------------------------------------------
+outputs:
+  dir: outputs
+  model_file: model.pt                    # best model state_dict
+  metrics_file: train_metrics.json        # per-epoch train+val loss
+  final_report_file: final_report.json    # per-segment metrics after training
+  regime_report_file: regime_analysis.json
+  baselines_file: baseline_metrics.json

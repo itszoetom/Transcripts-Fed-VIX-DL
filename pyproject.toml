@@ -5,22 +5,40 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "transcripts-fed-vix"
 version = "0.1.0"
-description = "Predicting VIX from FOMC transcript text using sequence models."
+description = "Predicting 3-day VIX change from Fed text via frozen FinBERT + learned sentence attention."
 readme = "README.md"
-requires-python = ">=3.11"
+# Python 3.10 because the target environment on Talapas (conda env `zoeenv`) is 3.10.
+requires-python = ">=3.10"
 dependencies = [
+    # Core DL stack. torch is installed separately on Talapas with a CUDA-matched wheel
+    # (see scripts/train.sbatch / install notes); we still list it so local Mac smoke tests work.
     "torch",
     "transformers",
+    # Tabular / numerical
     "pandas",
     "numpy",
     "scikit-learn",
+    "scipy",
+    "pyarrow",       # parquet I/O for processed dataset
+    # Data acquisition
+    "fredapi",       # FRED VIXCLS series fetch
+    "beautifulsoup4",
+    "requests",
+    # PDF parsing — needed because FOMC minutes from ~1993–2006 are only published as PDFs.
+    # pypdf is pure-Python so it installs cleanly inside zoeenv without external deps.
+    "pypdf",
+    # NLP preprocessing
+    "nltk",          # punkt sentence segmenter
+    # Statistics for regime-change analysis
+    "statsmodels",   # OLS for Chow-test residuals
+    # Utilities
     "PyYAML",
     "tqdm",
     "matplotlib",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "ipython", "jupyter"]
+dev = ["pytest", "ipython"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
