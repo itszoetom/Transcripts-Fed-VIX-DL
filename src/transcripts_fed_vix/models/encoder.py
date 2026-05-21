@@ -83,7 +83,7 @@ class FrozenFinBERTEncoder(nn.Module):
         super().__init__()
         # Local import keeps `import transcripts_fed_vix.models` cheap for
         # callers that just want config-level introspection.
-        from transformers import AutoModel, AutoTokenizer
+        from transformers import AutoTokenizer, BertModel
 
         self.checkpoint = checkpoint
         self.tokenizer_checkpoint = tokenizer_checkpoint
@@ -92,7 +92,13 @@ class FrozenFinBERTEncoder(nn.Module):
         # Tokenizer loaded from a separate checkpoint because finbert-pretrain
         # ships no tokenizer files; see DEFAULT_TOKENIZER_CHECKPOINT comment.
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_checkpoint)
-        backbone = AutoModel.from_pretrained(checkpoint)
+
+        # We load via BertModel rather than AutoModel because finbert-pretrain's
+        # config.json predates the `model_type` field that newer transformers
+        # AutoConfig requires. FinBERT IS BERT-base architecture (initialized
+        # from bert-base-uncased per Yang et al. 2020), so BertModel is the
+        # correct, type-safe choice — it doesn't need model_type to dispatch.
+        backbone = BertModel.from_pretrained(checkpoint)
 
         # Freeze every parameter — belt-and-suspenders: also set training=False
         # in forward(). Doing both means an accidental `model.train()` upstream
