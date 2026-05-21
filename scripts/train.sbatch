@@ -24,6 +24,11 @@ set -euo pipefail
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate base
 
+# Talapas system libstdc++ in /lib64 is older than what the conda env's
+# binaries (icuuc.so.75 -> sqlite3) require. Force the linker to prefer the
+# conda env's libstdc++ to fix `GLIBCXX_3.4.30 not found` on `import nltk`.
+export LD_LIBRARY_PATH="$CONDA_PREFIX/lib:${LD_LIBRARY_PATH:-}"
+
 cd /home/ztomlins/Transcripts-Fed-VIX-DL
 
 # Quick environment sanity check — prints to the .out log so failures are easy
