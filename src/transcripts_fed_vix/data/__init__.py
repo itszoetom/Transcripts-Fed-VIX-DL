@@ -9,5 +9,11 @@ Public surface:
 """
 
 from .segment import segment_document, SENTENCE_CAP
+from .dataset import get_example_dataloader, load_example_documents
 
-__all__ = ["segment_document", "SENTENCE_CAP"]
+__all__ = [
+    "segment_document",
+    "SENTENCE_CAP",
+    "get_example_dataloader",
+    "load_example_documents",
+]

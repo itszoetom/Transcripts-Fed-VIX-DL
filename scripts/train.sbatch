@@ -56,4 +56,8 @@ python scripts/run_regime_analysis.py --config configs/default.yaml
 # 5. Run the TF-IDF Ridge + BoW Logistic baselines on the same splits.
 python scripts/run_baselines.py --config configs/default.yaml
 
-echo "Pipeline complete. See outputs/ for model + metrics."
+# 6. Generate the standard set of project figures (training curves, scatter,
+#    residuals over time, attention heatmaps, etc.).
+python scripts/make_plots.py --config configs/default.yaml
+
+echo "Pipeline complete. See outputs/ for model + metrics + figures."
