@@ -42,6 +42,18 @@ logger = logging.getLogger(__name__)
 # for ablation experiments would only require changing this string.
 DEFAULT_FINBERT_CHECKPOINT = "yiyanghkust/finbert-pretrain"
 
+# Tokenizer source. The `yiyanghkust/finbert-pretrain` HuggingFace repo ships
+# only the model weights and config — every tokenizer file (tokenizer_config.json,
+# tokenizer.json, vocab.txt, special_tokens_map.json) is missing from the repo,
+# so AutoTokenizer.from_pretrained(checkpoint) fails with a confusing
+# "you need sentencepiece" error.
+#
+# FinBERT was initialized from BERT-base-uncased and reuses that exact 30522-token
+# WordPiece vocabulary (per Yang et al. 2020, "FinBERT: A Pretrained Language
+# Model for Financial Communications"). So we load the tokenizer from
+# `bert-base-uncased` directly — same vocab, no sentencepiece needed.
+DEFAULT_TOKENIZER_CHECKPOINT = "bert-base-uncased"
+
 # Per-sentence max tokens fed to FinBERT. FinBERT inherits BERT's 512 hard
 # limit. Fed-document sentences are virtually always <128 tokens; we set 256
 # as a safety margin while keeping per-batch memory predictable.
@@ -66,6 +78,7 @@ class FrozenFinBERTEncoder(nn.Module):
         checkpoint: str = DEFAULT_FINBERT_CHECKPOINT,
         device: str | torch.device = "cpu",
         max_length: int = MAX_SENTENCE_TOKENS,
+        tokenizer_checkpoint: str = DEFAULT_TOKENIZER_CHECKPOINT,
     ) -> None:
         super().__init__()
         # Local import keeps `import transcripts_fed_vix.models` cheap for
@@ -73,9 +86,12 @@ class FrozenFinBERTEncoder(nn.Module):
         from transformers import AutoModel, AutoTokenizer
 
         self.checkpoint = checkpoint
+        self.tokenizer_checkpoint = tokenizer_checkpoint
         self.max_length = max_length
 
-        self.tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+        # Tokenizer loaded from a separate checkpoint because finbert-pretrain
+        # ships no tokenizer files; see DEFAULT_TOKENIZER_CHECKPOINT comment.
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_checkpoint)
         backbone = AutoModel.from_pretrained(checkpoint)
 
         # Freeze every parameter — belt-and-suspenders: also set training=False
