@@ -7,8 +7,12 @@ name = "transcripts-fed-vix"
 version = "0.1.0"
 description = "Predicting 3-day VIX change from Fed text via frozen FinBERT + learned sentence attention."
 readme = "README.md"
-# Python 3.10 because the target environment on Talapas (conda env `zoeenv`) is 3.10.
-requires-python = ">=3.10"
+# Talapas target environment uses Python 3.12 (miniforge3 base). We declare >=3.9
+# rather than >=3.10 so that the demo notebook is runnable from a wider set of
+# Python installs (e.g., Apple's system Python 3.9 on macOS). The code itself
+# uses `from __future__ import annotations` everywhere, so the 3.10+ union-type
+# annotations (`X | Y`) are stored as strings and never evaluated at runtime.
+requires-python = ">=3.9"
 dependencies = [
     # Core DL stack. torch is installed separately on Talapas with a CUDA-matched wheel
     # (see scripts/train.sbatch / install notes); we still list it so local Mac smoke tests work.
@@ -24,7 +28,7 @@ dependencies = [
     "fredapi",       # FRED VIXCLS series fetch
     "beautifulsoup4",
     "requests",
-    # PDF parsing — needed because FOMC minutes from ~1993–2006 are only published as PDFs.
+    # PDF parsing, needed because FOMC minutes from ~1993–2006 are only published as PDFs.
     # pypdf is pure-Python so it installs cleanly inside zoeenv without external deps.
     "pypdf",
     # NLP preprocessing
