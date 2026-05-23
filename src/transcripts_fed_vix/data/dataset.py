@@ -132,18 +132,15 @@ def collate_padded(batch: Sequence[DatasetItem]) -> dict[str, torch.Tensor | lis
 
 
 def _default_example_dir() -> Path:
-    """Locate `data/example/` relative to the installed package.
+    """Locate `data/example/` at the repo root, regardless of CWD.
 
-    The example files are committed to the repo, so they're always findable
-    relative to the project root (two levels up from this file's package
-    install location). Falls back to CWD / data/example for editable installs.
+    `__file__` is `<repo_root>/src/transcripts_fed_vix/data/dataset.py` under an
+    editable `pip install -e .`, so `parents[3]` is the repo root. The result
+    does NOT depend on the caller's CWD, so this works equally well from a
+    notebook in `notebooks/`, a script in `scripts/`, or the repo root.
     """
-    # data/example lives at <repo-root>/data/example
     repo_root = Path(__file__).resolve().parents[3]
-    candidate = repo_root / "data" / "example"
-    if candidate.exists():
-        return candidate
-    return Path.cwd() / "data" / "example"
+    return repo_root / "data" / "example"
 
 
 def load_example_documents(example_dir: Path | None = None) -> pd.DataFrame:
