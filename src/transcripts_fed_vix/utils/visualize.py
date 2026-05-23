@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Sequence
 
 import matplotlib
-matplotlib.use("Agg")  # non-interactive backend — required on SLURM nodes
+matplotlib.use("Agg")  # non-interactive backend, required on SLURM nodes
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd

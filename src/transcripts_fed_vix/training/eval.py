@@ -1,13 +1,13 @@
 """Evaluation metrics: regression + binarized classification.
 
 Primary regression metrics:
-    MSE        — direct comparison vs. the TF-IDF ridge baseline.
-    R^2        — comparable across splits with different variance.
-    Pearson r  — direction-of-signal metric, scale-free.
+    MSE       , direct comparison vs. the TF-IDF ridge baseline.
+    R^2       , comparable across splits with different variance.
+    Pearson r , direction-of-signal metric, scale-free.
 
 Secondary binary metrics (target binarized at the *training* median):
-    AUC-ROC    — comparable to the BoW logistic-regression baseline.
-    F1         — at threshold 0.5 on the regression output (post-binarization).
+    AUC-ROC   , comparable to the BoW logistic-regression baseline.
+    F1        , at threshold 0.5 on the regression output (post-binarization).
 
 The training median is the threshold rather than the per-split median so that
 test-set evaluation does not leak information from the test split itself.
@@ -70,13 +70,13 @@ def regression_metrics(predictions: np.ndarray, targets: np.ndarray) -> Regressi
     err = predictions - targets
     mse = float(np.mean(err ** 2))
 
-    # R^2 against the *target's* mean — the standard "fraction of variance
+    # R^2 against the *target's* mean, the standard "fraction of variance
     # explained" definition. Guarded against zero-variance targets (degenerate
     # split): returns nan if total sum of squares is 0.
     tss = float(np.sum((targets - targets.mean()) ** 2))
     r2 = 1.0 - float(np.sum(err ** 2)) / tss if tss > 0 else float("nan")
 
-    # Pearson r — guard against constant inputs which scipy warns about.
+    # Pearson r, guard against constant inputs which scipy warns about.
     if predictions.std() == 0 or targets.std() == 0:
         pearson_r, pearson_p = float("nan"), float("nan")
     else:
@@ -118,7 +118,7 @@ def binary_classification_metrics(
         auc = float(roc_auc_score(y_true, y_score))
 
     # F1 with zero_division=0 returns 0 when there are no positive predictions
-    # at all — preferable to crashing on a degenerate split.
+    # at all, preferable to crashing on a degenerate split.
     f1 = float(f1_score(y_true, y_pred, zero_division=0))
 
     return BinaryMetrics(auc_roc=auc, f1=f1, threshold_used=float(threshold), n=int(y_true.size))

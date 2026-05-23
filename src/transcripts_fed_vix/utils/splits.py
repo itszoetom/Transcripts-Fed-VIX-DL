@@ -4,7 +4,7 @@ The pipeline uses two layered split decisions:
 
   1. **Hold-out structure** (the primary modeling split):
      - train:  documents released  <  2017-01-20  (Trump 1 inauguration)
-     - val:    last 15% of the train range chronologically — used only for
+     - val:    last 15% of the train range chronologically, used only for
                early stopping. Carved AFTER the pre-2017 cutoff so that
                nothing later than 2017-01-20 ever sees gradients or
                hyperparameter signal.
@@ -21,7 +21,7 @@ The pipeline uses two layered split decisions:
      Same dates (2017-01-20 and 2025-01-20) used as breakpoints in
      utils.chow.
 
-All splits are *temporal* — no random shuffling. Sort is by release_date,
+All splits are *temporal*, no random shuffling. Sort is by release_date,
 ascending.
 """
 

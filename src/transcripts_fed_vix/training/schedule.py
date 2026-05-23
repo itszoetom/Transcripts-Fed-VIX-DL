@@ -7,7 +7,7 @@ constant-after-warmup (not linear or cosine decay) because:
   - The trained head is small (~100k params) on a tiny dataset; aggressive
     decay tends to underfit before the head has converged.
   - Early stopping on val MSE makes a constant post-warmup LR perfectly
-    serviceable — the optimizer stops when val stops improving.
+    serviceable, the optimizer stops when val stops improving.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ def linear_warmup(
 ) -> torch.optim.lr_scheduler.LambdaLR:
     """Return a LambdaLR that linearly warms up over `warmup_steps`.
 
-    After warmup, the multiplier is held at 1.0 — i.e., LR == base LR.
+    After warmup, the multiplier is held at 1.0, i.e., LR == base LR.
 
     Args:
         optimizer:    Any torch optimizer.

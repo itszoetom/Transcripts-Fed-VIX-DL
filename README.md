@@ -2,7 +2,7 @@
 
 Predicting 3-day forward VIX change from Federal Reserve text (FOMC minutes + Humphrey-Hawkins testimony) via **frozen FinBERT + learned sentence-attention**, with structural-break analysis across U.S. political regimes.
 
-DSCI 410/510 — Project Milestone (Zoe Tomlinson)
+DSCI 410/510, Project Milestone (Zoe Tomlinson)
 
 ## TL;DR
 
@@ -27,30 +27,30 @@ The notebook loads 10 bundled example documents from `data/example/`, demonstrat
 
 ## Documentation
 
-- `docs/MILESTONE_REPORT.md` — milestone summary (the 4 required questions + a "changes since proposal" section).
-- `docs/METHODOLOGY.md` — comprehensive methodology write-up with rationale and citations for every non-trivial decision.
-- `docs/DL410-Project-Proposal.docx` — original project proposal.
+- `docs/MILESTONE_REPORT.md`: milestone summary (the 4 required questions + a "changes since proposal" section).
+- `docs/METHODOLOGY.md`: comprehensive methodology write-up with rationale and citations for every non-trivial decision.
+- `docs/DL410-Project-Proposal.docx`: original project proposal.
 
 ## Project structure
 
 ```
 src/transcripts_fed_vix/
-├── data/         — scraping, sentence segmentation, VIX alignment, DataLoader
-├── models/       — frozen FinBERT encoder + additive-attention head
-├── training/     — manual PyTorch training loop, LR schedule, evaluation metrics
-└── utils/        — seed, temporal splits, Chow test, plotting
-configs/default.yaml — single canonical config
+├── data/         scraping, sentence segmentation, VIX alignment, DataLoader
+├── models/       frozen FinBERT encoder + additive-attention head
+├── training/     manual PyTorch training loop, LR schedule, evaluation metrics
+└── utils/        seed, temporal splits, Chow test, plotting
+configs/default.yaml         single canonical config
 scripts/
-├── build_data.py            — scrape + segment + VIX-align → processed parquet
-├── precompute_embeddings.py — one-time FinBERT forward over all sentences
-├── train_model.py           — train + early-stop + per-segment evaluation
-├── run_regime_analysis.py   — Chow test on residuals
-├── run_baselines.py         — TF-IDF Ridge + BoW Logistic
-├── export_examples.py       — produce the bundled demo data
-├── make_plots.py            — generate outputs/figures/*.png
-└── train.sbatch             — SLURM entry point
-notebooks/data_demo.ipynb    — runnable demo of the DataLoader
-data/example/                — ~10 sample documents + embeddings + model (committed)
+├── build_data.py            scrape + segment + VIX-align to processed parquet
+├── precompute_embeddings.py one-time FinBERT forward over all sentences
+├── train_model.py           train + early-stop + per-segment evaluation
+├── run_regime_analysis.py   Chow test on residuals
+├── run_baselines.py         TF-IDF Ridge + BoW Logistic
+├── export_examples.py       produce the bundled demo data
+├── make_plots.py            generate outputs/figures/*.png
+└── train.sbatch             SLURM entry point
+notebooks/data_demo.ipynb    runnable demo of the DataLoader
+data/example/                ~10 sample documents + embeddings + model (committed)
 ```
 
 ## Full pipeline (Talapas)
@@ -67,17 +67,17 @@ tail -f slurm_logs/train-*.err
 The SLURM job runs scrape → segment → VIX-align → FinBERT precompute → train → per-segment evaluation → Chow test → baselines → figure generation. Each stage is idempotent and skips already-completed work; re-runs after a successful scrape are dominated by training (~30 s).
 
 Outputs land in `outputs/`:
-- `model.pt`, `train_metrics.json` — trained model + per-epoch metrics
-- `final_report.json` — per-segment regression + binary metrics
-- `regime_analysis.json` — R² by regime + Chow tests
-- `baseline_metrics.json` — TF-IDF Ridge + BoW Logistic
-- `figures/*.png` — training curves, predicted-vs-actual, residuals-over-time with breakpoints, attention heatmaps, etc.
+- `model.pt` and `train_metrics.json`: trained model + per-epoch metrics
+- `final_report.json`: per-segment regression + binary metrics
+- `regime_analysis.json`: R² by regime + Chow tests
+- `baseline_metrics.json`: TF-IDF Ridge + BoW Logistic
+- `figures/*.png`: training curves, predicted-vs-actual, residuals-over-time with breakpoints, attention heatmaps, etc.
 
 ## Environment
 
 - Python ≥ 3.10 (tested 3.12 on Talapas).
 - CUDA-enabled torch wheel matched to your driver (Talapas A100 nodes: cu121 or cu130 works).
-- `FRED_API_KEY` environment variable (free key from <https://fred.stlouisfed.org/docs/api/api_key.html>) — required only for the full scrape, not for the demo notebook.
+- `FRED_API_KEY` environment variable (free key from <https://fred.stlouisfed.org/docs/api/api_key.html>), required only for the full scrape, not for the demo notebook.
 
 ## Data access
 

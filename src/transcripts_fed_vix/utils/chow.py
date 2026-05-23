@@ -9,7 +9,7 @@ breakpoint?") and compute the F-statistic:
 
     F = ((RSS_pooled - (RSS_pre + RSS_post)) / k) / ((RSS_pre + RSS_post) / (N - 2k))
 
-where k is the number of regressors (here k=1 — just the intercept), and N is
+where k is the number of regressors (here k=1, just the intercept), and N is
 the total number of observations. Under H0 (no break), F ~ F(k, N - 2k).
 
 We report the F-statistic, its p-value, and the per-segment mean residual so

@@ -1,6 +1,6 @@
 """Smoke tests: package imports, default-config schema, model wiring.
 
-Kept intentionally minimal — these are CI-style sanity checks, not unit tests
+Kept intentionally minimal, these are CI-style sanity checks, not unit tests
 of model behavior. They confirm:
 
     1. All sub-packages import.
@@ -30,7 +30,7 @@ def test_default_config_schema():
                 "regime_analysis", "outputs"):
         assert key in cfg, f"missing top-level key: {key}"
 
-    # Critical leaf values — anything the scripts dereference.
+    # Critical leaf values, anything the scripts dereference.
     assert cfg["data"]["sentence_cap"] == 80
     assert cfg["data"]["target_horizon_trading_days"] == 3
     assert cfg["splits"]["train_end_date"] == "2017-01-20"
@@ -44,7 +44,7 @@ def test_sentence_attention_model_forward():
     """Verify the trained model can run a forward pass on a tiny fake batch.
 
     Uses random embeddings so this test does NOT depend on transformers/FinBERT
-    being installed — it only exercises the trained-component graph.
+    being installed, it only exercises the trained-component graph.
     """
     from transcripts_fed_vix.models import SentenceAttentionModel
     from transcripts_fed_vix.models.attention import AttentionConfig

@@ -22,7 +22,7 @@ Why additive (not dot-product, not multi-head self-attention):
     helps when the underlying sentence embeddings (frozen FinBERT) are not
     optimized for the regression target. Compared to a self-attention layer
     with a [DOC] token, additive attention adds ~100k parameters instead of
-    ~2.4M — critical when training on ~250 pre-2017 documents.
+    ~2.4M, critical when training on ~250 pre-2017 documents.
 
 The forward pass returns *both* predictions and attention weights so the
 weights can be inspected and visualized post-hoc (the project spec calls for
@@ -77,7 +77,7 @@ class ModelOutput(NamedTuple):
 class SentenceAttentionModel(nn.Module):
     """Frozen-encoder + additive-attention aggregator + linear regression head.
 
-    The encoder itself is *not* held inside this module — embeddings are
+    The encoder itself is *not* held inside this module, embeddings are
     pre-computed (see scripts/precompute_embeddings.py) and passed in via the
     forward pass. This keeps the only trained parameters here (attention W/b/v
     and the regression head w/b_reg), and keeps the model object cheap to
@@ -96,7 +96,7 @@ class SentenceAttentionModel(nn.Module):
         # Additive attention parameters.
         # W : (embed_dim -> attn_dim) and b : (attn_dim,)
         self.attn_proj = nn.Linear(self.config.embed_dim, self.config.attn_dim, bias=True)
-        # v : (attn_dim,) — implemented as a Linear(attn_dim -> 1) without bias.
+        # v : (attn_dim,), implemented as a Linear(attn_dim -> 1) without bias.
         self.attn_query = nn.Linear(self.config.attn_dim, 1, bias=False)
 
         # Light dropout on the doc vector. Useful with small data; turn off via
@@ -106,7 +106,7 @@ class SentenceAttentionModel(nn.Module):
         # Linear regression head. One output: 3-day VIX change.
         self.head = nn.Linear(self.config.embed_dim, 1)
 
-        # Sensible init for the regression head — small Gaussian works fine.
+        # Sensible init for the regression head, small Gaussian works fine.
         nn.init.normal_(self.head.weight, std=0.02)
         nn.init.zeros_(self.head.bias)
 
@@ -114,7 +114,7 @@ class SentenceAttentionModel(nn.Module):
         """Aggregate sentence embeddings into one prediction per document.
 
         Args:
-            embeddings: (B, N, embed_dim) — per-sentence vectors. Pad positions
+            embeddings: (B, N, embed_dim), per-sentence vectors. Pad positions
                         may contain arbitrary values; they're masked out by
                         `mask` before softmax.
             mask:       (B, N) 0/1 tensor; 1 = real sentence, 0 = pad.
@@ -147,5 +147,5 @@ class SentenceAttentionModel(nn.Module):
         return ModelOutput(prediction=pred, attention_weights=attn, doc_vector=doc_vec)
 
     def trainable_parameters(self) -> list[nn.Parameter]:
-        """Return only parameters that require grad — by design, all of them."""
+        """Return only parameters that require grad, by design, all of them."""
         return [p for p in self.parameters() if p.requires_grad]

@@ -31,7 +31,7 @@ export LD_LIBRARY_PATH="$CONDA_PREFIX/lib:${LD_LIBRARY_PATH:-}"
 
 cd /home/ztomlins/Transcripts-Fed-VIX-DL
 
-# Quick environment sanity check — prints to the .out log so failures are easy
+# Quick environment sanity check, prints to the .out log so failures are easy
 # to triage.
 python -c "import torch; print(f'torch {torch.__version__} | cuda available: {torch.cuda.is_available()} | device: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"cpu\"}')"
 

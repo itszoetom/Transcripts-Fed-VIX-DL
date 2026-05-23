@@ -7,13 +7,13 @@ Why fully frozen:
     The encoder weights are *never* updated during training. Two reasons:
 
     1. With ~250 training documents (pre-2017), fine-tuning a 110M-parameter
-       BERT is hopelessly under-data — it would overfit catastrophically and
+       BERT is hopelessly under-data, it would overfit catastrophically and
        lose the financial-domain pretraining signal we're paying for by
        picking FinBERT in the first place.
     2. Because the encoder is frozen and deterministic (no dropout active in
        eval mode), every sentence's embedding is fully determined by the
        sentence text alone. That means we can pre-compute embeddings once
-       and train the attention+head on cached vectors — orders of magnitude
+       and train the attention+head on cached vectors, orders of magnitude
        faster than re-encoding each epoch.
 
 Why mask-weighted mean pooling instead of [CLS]:
@@ -38,12 +38,12 @@ import torch.nn as nn
 logger = logging.getLogger(__name__)
 
 # Default checkpoint name. Configurable via FrozenFinBERTEncoder(...) for
-# robustness — e.g., swapping in the sentiment-fine-tuned `yiyanghkust/finbert-tone`
+# robustness, e.g., swapping in the sentiment-fine-tuned `yiyanghkust/finbert-tone`
 # for ablation experiments would only require changing this string.
 DEFAULT_FINBERT_CHECKPOINT = "yiyanghkust/finbert-pretrain"
 
 # Tokenizer source. The `yiyanghkust/finbert-pretrain` HuggingFace repo ships
-# only the model weights and config — every tokenizer file (tokenizer_config.json,
+# only the model weights and config, every tokenizer file (tokenizer_config.json,
 # tokenizer.json, vocab.txt, special_tokens_map.json) is missing from the repo,
 # so AutoTokenizer.from_pretrained(checkpoint) fails with a confusing
 # "you need sentencepiece" error.
@@ -51,7 +51,7 @@ DEFAULT_FINBERT_CHECKPOINT = "yiyanghkust/finbert-pretrain"
 # FinBERT was initialized from BERT-base-uncased and reuses that exact 30522-token
 # WordPiece vocabulary (per Yang et al. 2020, "FinBERT: A Pretrained Language
 # Model for Financial Communications"). So we load the tokenizer from
-# `bert-base-uncased` directly — same vocab, no sentencepiece needed.
+# `bert-base-uncased` directly, same vocab, no sentencepiece needed.
 DEFAULT_TOKENIZER_CHECKPOINT = "bert-base-uncased"
 
 # Per-sentence max tokens fed to FinBERT. FinBERT inherits BERT's 512 hard
@@ -97,10 +97,10 @@ class FrozenFinBERTEncoder(nn.Module):
         # config.json predates the `model_type` field that newer transformers
         # AutoConfig requires. FinBERT IS BERT-base architecture (initialized
         # from bert-base-uncased per Yang et al. 2020), so BertModel is the
-        # correct, type-safe choice — it doesn't need model_type to dispatch.
+        # correct, type-safe choice, it doesn't need model_type to dispatch.
         backbone = BertModel.from_pretrained(checkpoint)
 
-        # Freeze every parameter — belt-and-suspenders: also set training=False
+        # Freeze every parameter, belt-and-suspenders: also set training=False
         # in forward(). Doing both means an accidental `model.train()` upstream
         # cannot start updating these weights.
         for p in backbone.parameters():
@@ -133,8 +133,8 @@ class FrozenFinBERTEncoder(nn.Module):
     def _mean_pool(hidden: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         """Attention-mask-weighted mean over the token dimension.
 
-        hidden: (B, T, H) — token-level encoder outputs.
-        mask:   (B, T)    — 0/1 padding mask.
+        hidden: (B, T, H), token-level encoder outputs.
+        mask:   (B, T)   , 0/1 padding mask.
 
         Returns (B, H). Pad tokens are zeroed out before averaging; the
         denominator is the count of real tokens per row, clamped to >=1 to

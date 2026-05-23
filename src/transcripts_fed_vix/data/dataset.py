@@ -14,11 +14,11 @@ the softmax.
 
 Why pad-to-batch-max instead of pad-to-80:
     Most documents fill all 80 sentences (we truncated at 80), so the
-    difference is small — but pad-to-batch-max saves a bit of compute and
+    difference is small, but pad-to-batch-max saves a bit of compute and
     keeps the collator generic in case the cap is later changed.
 
 The module also exposes `get_example_dataloader()` for the project's data demo
-notebook — it loads a small bundled set of ~10 documents from data/example/
+notebook, it loads a small bundled set of ~10 documents from data/example/
 and returns a DataLoader that anyone can run after `pip install -e .` without
 needing access to Talapas, FRED, or the full scrape.
 """
@@ -55,7 +55,7 @@ class EmbeddingDocDataset(Dataset):
         documents_df:    DataFrame from build_processed_dataset() (or a temporal
                          subset thereof). Must contain doc_id, target,
                          release_date columns. Order is preserved (do NOT
-                         shuffle before passing in — temporal order matters).
+                         shuffle before passing in, temporal order matters).
         embeddings_path: Path to the .pt file containing {doc_id: tensor}.
     """
 
@@ -186,10 +186,10 @@ def get_example_dataloader(
 
     Returns:
         A torch DataLoader yielding dicts with keys:
-            embeddings: (B, N_max, 768) — frozen-FinBERT sentence embeddings
-            mask:       (B, N_max)      — 0/1 mask, 1 = real sentence
-            target:     (B,)            — 3-day forward VIX change
-            doc_ids:    list[str]       — document identifiers
+            embeddings: (B, N_max, 768), frozen-FinBERT sentence embeddings
+            mask:       (B, N_max)     , 0/1 mask, 1 = real sentence
+            target:     (B,)           , 3-day forward VIX change
+            doc_ids:    list[str]      , document identifiers
             release_dates: list[Timestamp]
     """
     example_dir = example_dir or _default_example_dir()

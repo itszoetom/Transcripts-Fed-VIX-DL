@@ -14,7 +14,7 @@ Why next-trading-day alignment:
     FOMC minutes are released at a fixed time (2:00 PM ET on a weekday) so
     those almost always have a same-day VIX close, but Humphrey-Hawkins
     testimony has historically taken place on weekdays whose closes are
-    available — except in rare cases of a Saturday/Sunday release or a U.S.
+    available, except in rare cases of a Saturday/Sunday release or a U.S.
     market holiday. When that happens we align the release to the *next*
     available trading day: this corresponds to the first VIX observation an
     investor could have reacted to. The alternative (previous trading day)
@@ -106,7 +106,7 @@ def fetch_vix(cache_path: Path | None = None) -> pd.Series:
     fred = Fred(api_key=api_key)
     series = fred.get_series(VIX_SERIES_ID)
     # fredapi returns a Series indexed by Timestamp; some daily series include
-    # NaNs on official holidays — drop them so the index represents actual
+    # NaNs on official holidays, drop them so the index represents actual
     # trading days only.
     series = series.dropna()
     series.index = pd.to_datetime(series.index).date  # type: ignore[assignment]

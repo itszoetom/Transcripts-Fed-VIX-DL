@@ -13,7 +13,7 @@ End-to-end flow:
 
 The temporal-generalization regime analysis (R^2 degradation across the
 inauguration-day boundaries, Chow test on residuals) lives in
-scripts/run_regime_analysis.py — that script depends on the best model dumped
+scripts/run_regime_analysis.py, that script depends on the best model dumped
 here.
 """
 
@@ -106,7 +106,7 @@ def main() -> None:
 
     # ----- data build (idempotent) -----
     if not documents_path.exists():
-        logger.info("processed dataset missing — building from raw scrape")
+        logger.info("processed dataset missing, building from raw scrape")
         build_processed_dataset(raw_dir=raw_dir, processed_dir=processed_dir,
                                 processed_filename=cfg["data"]["documents_file"])
     documents = pd.read_parquet(documents_path)
@@ -195,7 +195,7 @@ def main() -> None:
         ("regime3_2025_present", splits.regime3),
     ]:
         if len(split_df) == 0:
-            logger.info("split %s is empty — skipping", name)
+            logger.info("split %s is empty, skipping", name)
             continue
         loader = _build_loader(split_df, embeddings_path, train_cfg.batch_size)
         preds, tgts = _predict(model, loader, device)

@@ -16,7 +16,7 @@ be cached to disk before training (large speedup, no information leakage).
 
 Target: 3-day close-to-close VIX change after each document's release date,
 aligned to the next available trading day when the release falls on a weekend
-or U.S. market holiday. Temporal splits respect calendar order — no random
+or U.S. market holiday. Temporal splits respect calendar order, no random
 shuffling anywhere in the pipeline.
 """
 

@@ -18,7 +18,7 @@ Both baselines use the same train / val / test1 / test2 / test3 segments the
 deep model uses, and the same train-median binarization threshold.
 
 We deliberately do NOT do cross-validated hyperparameter search inside the
-training segment — the baselines use fixed, conventional defaults (Ridge
+training segment, the baselines use fixed, conventional defaults (Ridge
 alpha=1.0, LR C=1.0). This keeps the comparison honest: the deep model has
 exactly one early-stopping signal, and the baselines have zero.
 """

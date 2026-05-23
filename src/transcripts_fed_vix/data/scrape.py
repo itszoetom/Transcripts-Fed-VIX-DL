@@ -62,7 +62,7 @@ USER_AGENT = (
     "(contact: ztomlins@uoregon.edu)"
 )
 
-# Delay between HTTP requests, in seconds. Conservative — the bottleneck is not
+# Delay between HTTP requests, in seconds. Conservative, the bottleneck is not
 # our scraper.
 REQUEST_DELAY_SEC = 0.5
 
@@ -110,7 +110,7 @@ def _session() -> requests.Session:
 def _fetch_bytes(sess: requests.Session, url: str, *, retries: int = 3) -> bytes:
     """GET `url` returning raw bytes, with retries and a polite delay.
 
-    404 / 410 are NOT retried because they're permanent — retrying just adds
+    404 / 410 are NOT retried because they're permanent, retrying just adds
     latency to the scrape without ever recovering. Transient errors (5xx,
     connection drops) still get exponential-backoff retries.
     """
@@ -124,12 +124,12 @@ def _fetch_bytes(sess: requests.Session, url: str, *, retries: int = 3) -> bytes
         except requests.HTTPError as exc:
             status = exc.response.status_code if exc.response is not None else None
             if status in (404, 410):
-                # Permanent failure — surface immediately.
+                # Permanent failure, surface immediately.
                 raise
             last_exc = exc
             logger.warning("fetch failed (%s/%s) %s: %s", attempt + 1, retries, url, exc)
             time.sleep(2 ** attempt)
-        except Exception as exc:  # noqa: BLE001 — retry transient errors
+        except Exception as exc:  # noqa: BLE001, retry transient errors
             last_exc = exc
             logger.warning("fetch failed (%s/%s) %s: %s", attempt + 1, retries, url, exc)
             time.sleep(2 ** attempt)  # exponential backoff
@@ -172,7 +172,7 @@ def _extract_pdf_text(pdf_bytes: bytes) -> str:
     pages = [page.extract_text() or "" for page in reader.pages]
     text = _normalize_whitespace(" ".join(pages))
     if not text.strip():
-        logger.warning("PDF extracted to empty text — likely scanned image PDF")
+        logger.warning("PDF extracted to empty text, likely scanned image PDF")
     return text
 
 
@@ -266,7 +266,7 @@ def scrape_fomc_minutes(
     for year in range(start_year, end_year + 1):
         # The historical-layout URL covers archived years. Newer years are also
         # mirrored on the historical pages once the calendar year ends, so this
-        # one URL family works for the whole range we want — but in case it's
+        # one URL family works for the whole range we want, but in case it's
         # missing we silently move on (most-recent-year case).
         index_url = f"{FED_HOST}/monetarypolicy/fomchistorical{year}.htm"
         index_cache = fomc_dir / f"index_{year}.html"
@@ -297,7 +297,7 @@ def scrape_fomc_minutes(
 
     # Deduplicate by date_iso (prefer HTML; the prefer-HTML logic is already in
     # _parse_fomc_index_page within a single page, but across pages we still
-    # need to break ties — keep the first one seen).
+    # need to break ties, keep the first one seen).
     seen: set[str] = set()
     unique: list[tuple[str, str]] = []
     for url, date_iso in discovered:
@@ -398,7 +398,7 @@ def _parse_hh_index_page(base_url: str, html_bytes: bytes) -> list[tuple[str, st
 
     # Pre-2006 boarddocs layout: testimony page IS the testimony, so the
     # base_url's URL itself names the date in path; we don't iterate links
-    # there — we treat the page itself as a doc if its title matches.
+    # there, we treat the page itself as a doc if its title matches.
     if "/boarddocs/hh/" in base_url:
         page_title = soup.title.get_text(" ", strip=True) if soup.title else ""
         if _HH_TITLE_RE.search(page_title) or _HH_TITLE_RE.search(html_bytes.decode("utf-8", errors="ignore")):

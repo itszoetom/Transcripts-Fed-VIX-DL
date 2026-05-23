@@ -3,7 +3,7 @@
 Why NLTK punkt:
     Punkt is the unsupervised sentence tokenizer of choice in academic NLP. It
     handles common formal-prose abbreviations (U.S., Mr., Dr., etc.) reasonably
-    well — important for Fed text, which is dense with abbreviations — and has
+    well, important for Fed text, which is dense with abbreviations, and has
     a tiny footprint compared to spaCy. It's also the most-cited choice in
     prior work on Fed/FOMC text mining, which keeps the methodology section of
     the write-up uncomplicated.
@@ -15,7 +15,7 @@ Why a hard cap at 80 sentences (SENTENCE_CAP):
 
         1. The opening sections of these documents contain the policy
            rationale and forward-looking language that markets actually
-           respond to — operational detail and member-by-member voting
+           respond to, operational detail and member-by-member voting
            appendices come later and are well-known to be lower signal
            (see Hansen, McMahon & Prat 2018; Curti & Kazinnik 2023 for
            the same intuition on truncating Fed text).
@@ -56,7 +56,7 @@ def _ensure_punkt_available() -> None:
             return
         except LookupError:
             continue
-    # Nothing found — download both, idempotent.
+    # Nothing found, download both, idempotent.
     logger.info("Downloading NLTK punkt tokenizer data (one-time)…")
     nltk.download("punkt_tab", quiet=True)
     nltk.download("punkt", quiet=True)
@@ -76,7 +76,7 @@ def segment_document(text: str, cap: int = SENTENCE_CAP) -> list[str]:
     Notes:
         - Empty / whitespace-only sentences are filtered out before truncation,
           so the returned list contains `cap` real sentences when possible.
-        - We do not strip punctuation, lowercase, or otherwise normalize — the
+        - We do not strip punctuation, lowercase, or otherwise normalize, the
           downstream BERT tokenizer expects natural text.
     """
     if not text or not text.strip():

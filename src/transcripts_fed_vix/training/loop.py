@@ -85,7 +85,7 @@ def train(
                            returning a NamedTuple with `.prediction`).
         train_loader:      DataLoader yielding the collated batches from
                            data.dataset.collate_padded. NOTE: shuffle=False
-                           by spec — temporal order is preserved.
+                           by spec, temporal order is preserved.
         val_loader:        Validation DataLoader, also shuffle=False.
         config:            TrainConfig with all hyperparameters.
         device:            torch.device to train on.
@@ -97,7 +97,7 @@ def train(
     """
     model.to(device)
 
-    # AdamW on only the parameters that require grad — protects us if any
+    # AdamW on only the parameters that require grad, protects us if any
     # extra frozen module ever ends up inside `model`.
     trainable = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(

@@ -6,7 +6,7 @@ A comprehensive write-up of the project's data-collection, feature-engineering, 
 
 **RQ1 (predictive):** Does the text of Federal Reserve policy communications (FOMC minutes and Humphrey-Hawkins / Semiannual Monetary Policy Report testimony) predict the 3-day close-to-close change in the CBOE Volatility Index (VIX) following each document's release?
 
-**RQ2 (structural-break / regime):** Does the text→volatility relationship structurally shift across U.S. political regimes — Obama (pre-2017), Trump 1 (2017-01-20 to 2021-01-20), Biden (2021-01-20 to 2025-01-20), Trump 2 (2025-01-20–present)?
+**RQ2 (structural-break / regime):** Does the text→volatility relationship structurally shift across U.S. political regimes, Obama (pre-2017), Trump 1 (2017-01-20 to 2021-01-20), Biden (2021-01-20 to 2025-01-20), Trump 2 (2025-01-20–present)?
 
 RQ1 is the modeling problem; RQ2 is a hypothesis test on the residuals from RQ1's model.
 
@@ -28,7 +28,7 @@ All documents are scraped from `federalreserve.gov` using `requests` + `Beautifu
 3. `/monetarypolicy/fomcminutes{YYYYMMDD}.htm|pdf` (~2007-2020)
 4. `/monetarypolicy/files/fomcminutes{YYYYMMDD}.pdf` (~2020-present)
 
-Humphrey-Hawkins testimony similarly uses two patterns (`{YYYY}testimony.htm` pre-~2016, `{YYYY}-testimony.htm` post-~2016) plus a pre-2006 `/boarddocs/hh/` layout. Discovery of all URL families was iterative — the scraper was patched until the document count converged on ~322 (the project proposal's expectation; the realized count is 326).
+Humphrey-Hawkins testimony similarly uses two patterns (`{YYYY}testimony.htm` pre-~2016, `{YYYY}-testimony.htm` post-~2016) plus a pre-2006 `/boarddocs/hh/` layout. Discovery of all URL families was iterative, the scraper was patched until the document count converged on ~322 (the project proposal's expectation; the realized count is 326).
 
 ### 2.3 Caching
 Raw HTTP bytes (HTML + PDF), extracted plain text, and the FRED VIX series are all cached under `data/raw/`. Re-runs of the scraper are idempotent and skip any document whose text file already exists, making iterative development cheap.
@@ -41,7 +41,7 @@ Pulled from FRED via `fredapi` (series `VIXCLS`, the official CBOE VIX closing v
 ## 3. Text preprocessing
 
 ### 3.1 Sentence segmentation
-NLTK's Punkt sentence tokenizer (Kiss & Strunk, 2006) is used to split each document's plain-text body into sentences. Punkt is the academic-NLP standard for unsupervised sentence boundary detection on formal prose and handles common abbreviations (U.S., Mr., Dr.) reasonably well — important for Fed text, which is abbreviation-dense.
+NLTK's Punkt sentence tokenizer (Kiss & Strunk, 2006) is used to split each document's plain-text body into sentences. Punkt is the academic-NLP standard for unsupervised sentence boundary detection on formal prose and handles common abbreviations (U.S., Mr., Dr.) reasonably well, important for Fed text, which is abbreviation-dense.
 
 ### 3.2 Sentence cap
 Each document is truncated to the **first 80 sentences** before encoding. Three motivations:
@@ -57,10 +57,10 @@ The cap is enforced *at the sentence boundary*, not in mid-text. This satisfies 
 ### 4.1 Choice of encoder
 `yiyanghkust/finbert-pretrain` (Yang, Uy & Huang 2020, "FinBERT: A Pretrained Language Model for Financial Communications") is the masked-language-model-pretrained variant of FinBERT, initialized from `bert-base-uncased` and further pretrained on financial corpora. It is *not* the sentiment-classification fine-tuned variant (`yiyanghkust/finbert-tone`); we deliberately want the general financial-language representations, not the sentiment-classification head's bias.
 
-The repository ships only model weights — no tokenizer files — so the tokenizer is loaded from `bert-base-uncased` directly (FinBERT uses the same 30,522-token WordPiece vocabulary).
+The repository ships only model weights, no tokenizer files, so the tokenizer is loaded from `bert-base-uncased` directly (FinBERT uses the same 30,522-token WordPiece vocabulary).
 
 ### 4.2 Why fully frozen
-All FinBERT parameters are frozen during training (`requires_grad=False`). With only ~233 training documents, fine-tuning a 110M-parameter BERT is hopelessly under-data — it would overfit catastrophically and discard the financial-domain pretraining signal we're paying for by choosing FinBERT in the first place. Frozen-encoder training is also strictly faster because sentence embeddings can be pre-computed once and cached (see §6).
+All FinBERT parameters are frozen during training (`requires_grad=False`). With only ~233 training documents, fine-tuning a 110M-parameter BERT is hopelessly under-data, it would overfit catastrophically and discard the financial-domain pretraining signal we're paying for by choosing FinBERT in the first place. Frozen-encoder training is also strictly faster because sentence embeddings can be pre-computed once and cached (see §6).
 
 ### 4.3 Why mean pooling, not `[CLS]`
 For each sentence we extract the encoder's last-hidden-state tokens and compute their **mask-weighted mean** across the non-padding positions. We deliberately do *not* use the `[CLS]` token's embedding.
@@ -77,10 +77,10 @@ $$
 
 where $h_i$ is the $i$-th sentence embedding (768-d), $W \in \mathbb{R}^{128 \times 768}$, $b \in \mathbb{R}^{128}$, $v \in \mathbb{R}^{128}$, and the mask sets padded positions to $-\infty$ before softmax. The document vector $d$ feeds a linear regression head $y = w^\top d + b_{\text{reg}}$.
 
-This is the Hierarchical Attention Network formulation of Yang et al. (2016, "Hierarchical Attention Networks for Document Classification") — the canonical academic reference for "attend over sentence embeddings to make one document vector." Alternatives considered and rejected:
+This is the Hierarchical Attention Network formulation of Yang et al. (2016, "Hierarchical Attention Networks for Document Classification"), the canonical academic reference for "attend over sentence embeddings to make one document vector." Alternatives considered and rejected:
 
 - **Dot-product attention with a learned query.** Simpler but lacks the per-sentence linear transform; less expressive when the underlying embeddings aren't optimized for the regression target.
-- **Single self-attention layer with a `[DOC]` token.** ~2.4M parameters vs. ~100k for additive — a brutal capacity/data ratio for ~233 training documents.
+- **Single self-attention layer with a `[DOC]` token.** ~2.4M parameters vs. ~100k for additive, a brutal capacity/data ratio for ~233 training documents.
 
 Additive attention's ~100k trained parameters is the sweet spot for this dataset size.
 
@@ -90,12 +90,12 @@ Because the encoder is fully frozen and deterministic (no dropout in eval mode),
 
 ## 7. Train/val/test splits
 
-All splits are *strictly temporal* — no random shuffling, anywhere in the pipeline. Documents are sorted by `release_date` ascending and partitioned by date boundaries.
+All splits are *strictly temporal*, no random shuffling, anywhere in the pipeline. Documents are sorted by `release_date` ascending and partitioned by date boundaries.
 
 **Boundaries (anchored to U.S. presidential inauguration days):**
-- `2017-01-20` — Trump 1 inauguration (train/test divide)
-- `2021-01-20` — Biden inauguration
-- `2025-01-20` — Trump 2 inauguration
+- `2017-01-20`, Trump 1 inauguration (train/test divide)
+- `2021-01-20`, Biden inauguration
+- `2025-01-20`, Trump 2 inauguration
 
 **Partitions:**
 - Train pool: `release_date < 2017-01-20` (233 documents)
@@ -104,13 +104,13 @@ All splits are *strictly temporal* — no random shuffling, anywhere in the pipe
 - Regime 2: 2021-01-20 ≤ date < 2025-01-20 (40 docs)
 - Regime 3: 2025-01-20 ≤ date (13 docs as of May 2026)
 
-Anchoring to inauguration dates makes the regime hypothesis (RQ2) directly interpretable — each segment maps to a single presidential administration.
+Anchoring to inauguration dates makes the regime hypothesis (RQ2) directly interpretable, each segment maps to a single presidential administration.
 
 ## 8. Training procedure
 
 Manual PyTorch loop (no HuggingFace Trainer). All hyperparameters live in `configs/default.yaml`:
 
-- **Optimizer:** AdamW(lr=3e-4, weight_decay=1e-4) on the ~99,329 trainable parameters (attention + linear head only — encoder is frozen). The learning rate is higher than the conventional BERT-fine-tuning 2e-5 because we are training a small head from scratch, not fine-tuning a large backbone.
+- **Optimizer:** AdamW(lr=3e-4, weight_decay=1e-4) on the ~99,329 trainable parameters (attention + linear head only, encoder is frozen). The learning rate is higher than the conventional BERT-fine-tuning 2e-5 because we are training a small head from scratch, not fine-tuning a large backbone.
 - **LR schedule:** linear warmup over the first 10% of total steps, constant thereafter. Constant-after-warmup (rather than decay) is preferred because early stopping on val MSE controls the actual stop point.
 - **Gradient clipping:** `max_norm=1.0`.
 - **Early stopping:** stop if val MSE has not improved for 5 epochs; max 30 epochs.
@@ -120,9 +120,9 @@ Manual PyTorch loop (no HuggingFace Trainer). All hyperparameters live in `confi
 ## 9. Evaluation
 
 ### 9.1 Primary metrics (continuous target)
-- **MSE** — direct comparison to baseline.
-- **R²** — fraction of variance explained; comparable across splits with differing target variances.
-- **Pearson r** — direction-of-signal metric, scale-free.
+- **MSE**, direct comparison to baseline.
+- **R²**, fraction of variance explained; comparable across splits with differing target variances.
+- **Pearson r**, direction-of-signal metric, scale-free.
 
 ### 9.2 Secondary metrics (binarized target)
 The continuous target is binarized at the *training-set* median (computed only on the train split, to avoid leakage into evaluation). Two metrics:
@@ -147,13 +147,13 @@ $$
 
 with $k=1$ (intercept-only regression). Implemented in `src/transcripts_fed_vix/utils/chow.py`.
 
-**Caveat for the 2017-01-20 breakpoint:** pre-2017 residuals are in-sample (the model was trained on them) and biased toward zero. The Chow test at 2017-01-20 is therefore anti-conservative — likely to over-detect a "shift" that is partly the train/test discontinuity. This caveat is recorded in `outputs/regime_analysis.json` next to the test result. The 2025-01-20 breakpoint, where both sides are out-of-sample, is interpretable as a clean regime-change test.
+**Caveat for the 2017-01-20 breakpoint:** pre-2017 residuals are in-sample (the model was trained on them) and biased toward zero. The Chow test at 2017-01-20 is therefore anti-conservative, likely to over-detect a "shift" that is partly the train/test discontinuity. This caveat is recorded in `outputs/regime_analysis.json` next to the test result. The 2025-01-20 breakpoint, where both sides are out-of-sample, is interpretable as a clean regime-change test.
 
 ## 10. Reproducibility
 
 - All random seeds (Python, NumPy, PyTorch CPU+CUDA) are set from `configs/default.yaml`.
 - Sentence embeddings are deterministic (frozen encoder, no eval-mode dropout).
-- The full pipeline (`scripts/train.sbatch`) is idempotent — re-runs use cached scraped HTML, cached VIX, cached embeddings, etc., and re-deriving the dataset from scratch is one command (`python scripts/build_data.py --force`).
+- The full pipeline (`scripts/train.sbatch`) is idempotent, re-runs use cached scraped HTML, cached VIX, cached embeddings, etc., and re-deriving the dataset from scratch is one command (`python scripts/build_data.py --force`).
 - The trained model checkpoint, per-epoch metrics, per-regime metrics, regime-analysis report, baseline metrics, and all figures are written under `outputs/`.
 
 ## 11. Selected references

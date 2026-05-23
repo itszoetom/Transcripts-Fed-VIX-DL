@@ -50,7 +50,7 @@ def main() -> None:
     out_path = processed_dir / cfg["data"]["embeddings_file"]
 
     if out_path.exists() and not args.force:
-        logger.info("embeddings already exist at %s — skipping (pass --force to recompute)", out_path)
+        logger.info("embeddings already exist at %s, skipping (pass --force to recompute)", out_path)
         return
 
     documents = pd.read_parquet(documents_path)
@@ -75,7 +75,7 @@ def main() -> None:
     for _, row in tqdm(documents.iterrows(), total=len(documents), desc="encoding"):
         sents = list(row["sentences"])
         emb = encoder.encode_sentences(sents, batch_size=cfg["model"]["sentence_encode_batch_size"])
-        # Move to CPU + float32 before saving — keeps the file portable and
+        # Move to CPU + float32 before saving, keeps the file portable and
         # small enough to load on a CPU-only machine for analysis.
         embeddings[row["doc_id"]] = emb.cpu().to(torch.float32)
 

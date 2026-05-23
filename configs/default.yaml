@@ -43,7 +43,7 @@ data:
   target_horizon_trading_days: 3
 
 # ---------------------------------------------------------------------------
-# Temporal splits — locked by design discussion
+# Temporal splits, locked by design discussion
 # ---------------------------------------------------------------------------
 splits:
   # Anchor split boundaries at U.S. presidential inauguration days because the
@@ -60,7 +60,7 @@ splits:
 # Model
 # ---------------------------------------------------------------------------
 model:
-  # The encoder is FULLY frozen — no gradient flows back through these weights.
+  # The encoder is FULLY frozen, no gradient flows back through these weights.
   # We pick the MLM-pretrained FinBERT (not the sentiment-fine-tuned variant)
   # because we want general financial-domain language representations, not the
   # tone-classification head's bias.

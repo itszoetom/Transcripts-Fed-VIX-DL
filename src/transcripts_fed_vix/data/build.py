@@ -125,7 +125,7 @@ def build_processed_dataset(
         logger.info("dropped %d documents during build (no sentences or no VIX target)", dropped)
 
     df = pd.DataFrame(rows)
-    # Sort chronologically — critical for downstream temporal splits.
+    # Sort chronologically, critical for downstream temporal splits.
     df = df.sort_values("release_date").reset_index(drop=True)
 
     # Pandas stores `date` as object; convert release/aligned to pyarrow

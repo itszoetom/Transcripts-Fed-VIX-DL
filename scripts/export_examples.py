@@ -4,12 +4,12 @@ Picks ~10 documents that span the temporal and source structure of the full
 corpus (oldest, middle thirds, newest, with at least 2 from each source),
 and writes:
 
-    data/example/example_documents.json   — sentences + target + dates
-    data/example/example_embeddings.pt    — pre-computed FinBERT embeddings
+    data/example/example_documents.json  , sentences + target + dates
+    data/example/example_embeddings.pt   , pre-computed FinBERT embeddings
                                             for the example docs (first
                                             20 sentences each, to keep the
                                             file under 1 MB)
-    data/example/example_model.pt         — copy of outputs/model.pt so the
+    data/example/example_model.pt        , copy of outputs/model.pt so the
                                             notebook can show attention
                                             without retraining
 
@@ -97,7 +97,7 @@ def main() -> None:
         if doc_id in all_emb:
             example_embeddings[doc_id] = all_emb[doc_id][:SENTENCES_PER_EXAMPLE].clone()
         else:
-            logger.warning("no cached embeddings for %s — skipping", doc_id)
+            logger.warning("no cached embeddings for %s, skipping", doc_id)
 
     (example_dir / "example_documents.json").write_text(json.dumps(records, indent=2))
     torch.save(example_embeddings, example_dir / "example_embeddings.pt")
