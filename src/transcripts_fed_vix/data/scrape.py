@@ -198,7 +198,7 @@ def _normalize_whitespace(s: str) -> str:
 # Single regex handling all four: the date appears either after
 # "/fomc/minutes/" (optionally with a year subdir for the very early layout)
 # or after "fomcminutes" (modern layout, optionally nested under /files/).
-# The trailing `min` suffix is optional and only present in the 1993–1995
+# The trailing `min` suffix is optional and only present in the 1993 to 1995
 # layout. Case-insensitive because the early-1990s URLs use uppercase MINUTES.
 _FOMC_MINUTES_URL_RE = re.compile(
     r"(?:fomc/minutes/(?:\d{4}/)?|fomcminutes)(?P<date>\d{8})(?:min)?\.(?P<ext>htm|pdf)",

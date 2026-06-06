@@ -26,8 +26,7 @@ def test_default_config_schema():
         cfg = yaml.safe_load(f)
 
     # Top-level sections.
-    for key in ("seed", "data", "splits", "model", "training",
-                "regime_analysis", "outputs"):
+    for key in ("seed", "data", "splits", "model", "training", "outputs"):
         assert key in cfg, f"missing top-level key: {key}"
 
     # Critical leaf values, anything the scripts dereference.

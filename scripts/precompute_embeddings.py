@@ -4,7 +4,7 @@ Because the FinBERT encoder is frozen and deterministic, every sentence's
 embedding is fixed by the sentence's text. We compute the embeddings ONCE
 here, save them to disk, and reuse them every epoch in the training loop.
 
-This saves 2–3 orders of magnitude of compute over re-running BERT inside
+This saves 2 to 3 orders of magnitude of compute over re-running BERT inside
 each training step, and it produces no information leakage: the encoder is
 the same model with the same weights regardless of when it runs.
 

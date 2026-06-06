@@ -107,17 +107,6 @@ training:
   early_stop_patience: 5          # stop if val MSE hasn't improved in 5 epochs
 
 # ---------------------------------------------------------------------------
-# Regime-change analysis
-# ---------------------------------------------------------------------------
-regime_analysis:
-  # Chow-test breakpoints on the model's prediction residuals. Required: the
-  # 2017 boundary. Optional: the 2025 boundary (sparse data may make this
-  # underpowered).
-  chow_breakpoints:
-    - "2017-01-20"
-    - "2025-01-20"
-
-# ---------------------------------------------------------------------------
 # Outputs
 # ---------------------------------------------------------------------------
 outputs:

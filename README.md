@@ -1,20 +1,69 @@
 # Transcripts-Fed-VIX-DL
 
-Predicting 3-day forward VIX change from Federal Reserve text (FOMC minutes + Humphrey-Hawkins testimony) via **frozen FinBERT + learned sentence-attention**, with structural-break analysis across U.S. political regimes.
+Predicting the 3-day forward VIX change from Federal Reserve text (FOMC minutes plus Humphrey-Hawkins testimony) using a frozen FinBERT encoder, a learned additive (Bahdanau-style) sentence attention aggregator, and a linear regression head.
 
-DSCI 410/510, Project Milestone (Zoe Tomlinson)
+DSCI 410/510 Final Project, Zoe Tomlinson.
 
-## TL;DR
+## Project purpose
 
-- **Inputs:** first 80 sentences of each Fed document (FOMC minutes 1993+, HH testimony 1997+), encoded with frozen `yiyanghkust/finbert-pretrain` + mask-weighted mean pooling.
-- **Aggregation:** learned additive (Bahdanau-style) attention across sentences.
-- **Head:** linear regression to a scalar 3-day VIX change.
-- **Trained components:** attention layer + linear head only (~100k parameters). The encoder is fully frozen.
-- **Splits:** strictly temporal, anchored to U.S. presidential inauguration days (2017-01-20, 2021-01-20, 2025-01-20).
-- **Baselines:** TF-IDF + Ridge (regression); BoW + Logistic Regression (binarized target).
-- **Regime analysis:** R² degradation across regimes + Chow F-test on residuals.
+The Federal Reserve is the U.S. central bank; its decisions about interest rates propagate into the cost of credit, asset prices, and inflation. The FOMC (Federal Open Market Committee) is the 12-member subcommittee that actually sets policy and releases minutes about three weeks after each of its eight annual meetings. The Fed Chair also testifies before Congress twice a year (Humphrey-Hawkins testimony). Markets parse this text line by line for signals about future rate moves.
 
-## Quick demo (no Talapas, no FRED key needed)
+The VIX (CBOE Volatility Index) is the market's expectation of 30-day forward volatility in the S&P 500, derived from short-dated option prices and commonly nicknamed the "investor fear gauge" (Whaley 2000). When the market expects calm, VIX falls; when traders see uncertainty ahead, VIX rises.
+
+This project asks two questions:
+
+1. **Predictive (RQ1):** Does the textual content of Fed communications predict the 3-day forward change in the VIX after each document's release? Prior work shows that Fed text moves Treasury yields and equity measures (Hansen, McMahon & Prat 2018; Lucca & Trebbi 2009), so a measurable signal on short-horizon volatility is plausible.
+2. **Temporal generalization (RQ2):** Does that relationship hold across U.S. political regimes? The Fed is formally independent, but presidential pressure on the Chair has varied sharply between administrations (Obama, Trump 1, Biden, Trump 2). A model trained on pre-2017 text might generalize poorly to later regimes.
+
+A full intuition-level walkthrough plus citations lives in `docs/METHODOLOGY.md`.
+
+## Dataset
+
+326 documents scraped from `federalreserve.gov` and aligned to a FRED VIX series:
+
+- **FOMC minutes** (1993 to present, 268 docs across four URL conventions the Fed has used).
+- **Humphrey-Hawkins / Semiannual Monetary Policy Report testimony** (1997 to present, 58 docs).
+
+Each document is sentence-segmented with NLTK Punkt (Kiss & Strunk 2006) and truncated to the first 80 sentences, which carry the policy rationale. Each sentence is then encoded by `yiyanghkust/finbert-pretrain` and mask-weighted mean-pooled into one 768-d vector. Embeddings are deterministic and pre-computed once.
+
+**Target:** 3-day close-to-close VIX change (FRED `VIXCLS`), aligned to the next trading day so there is no look-ahead leakage on weekend or holiday releases.
+
+**Splits** are strictly temporal, anchored to U.S. presidential inauguration days:
+
+| Segment   | Date range                       | Approx n |
+|-----------|----------------------------------|----------|
+| Train     | release_date < 2017-01-20         | 233 docs |
+| Val       | last 15 percent of train (chrono) | 35 docs  |
+| Regime 1  | 2017-01-20 to 2021-01-20          | 40 docs  |
+| Regime 2  | 2021-01-20 to 2025-01-20          | 40 docs  |
+| Regime 3  | 2025-01-20 onward                 | 13 docs  |
+
+The corpus is rebuilt deterministically by `scripts/build_data.py` from cached HTTP responses and a FRED API key. `notebooks/data_demo.ipynb` runs against 10 bundled example documents without Talapas or FRED.
+
+## Model
+
+`SentenceAttentionModel` (`src/transcripts_fed_vix/models/attention.py`):
+
+```
+sentences -> FinBERT (frozen) -> 80 x 768 sentence embeddings
+       -> additive attention: u = tanh(W h + b), s = v^T u, alpha = softmax(s)
+       -> weighted sum -> 768-d document vector
+       -> dropout(0.1) -> linear head -> scalar prediction
+```
+
+Trainable parameters: about 99,000 (attention plus linear head). FinBERT itself is fully frozen, which is the standard small-data choice (Peters, Ruder & Smith 2019). Additive attention is the canonical Hierarchical Attention Network formulation (Yang et al. 2016) and gives interpretable per-sentence weights that drive the project's main interpretability figure.
+
+## Metrics
+
+- **MSE** (training loss and direct comparison vs. baseline).
+- **R^2** (fraction of variance explained, comparable across regimes).
+- **Pearson r** (direction-of-signal, scale-free).
+
+All three are reported per segment (val, regime 1, regime 2, regime 3) for both the deep model and a **TF-IDF plus Ridge baseline** (`scripts/run_baselines.py`).
+
+## How to train
+
+### Local quick demo
 
 ```bash
 git clone https://github.com/itszoetom/Transcripts-Fed-VIX-DL.git
@@ -23,63 +72,72 @@ pip install -e .
 jupyter notebook notebooks/data_demo.ipynb
 ```
 
-The notebook loads 10 bundled example documents from `data/example/`, demonstrates the DataLoader API, and shows what a training batch looks like. No network or cluster access required.
-
-## Documentation
-
-- `docs/MILESTONE_REPORT.md`: milestone summary (the 4 required questions + a "changes since proposal" section).
-- `docs/METHODOLOGY.md`: comprehensive methodology write-up with rationale and citations for every non-trivial decision.
-- `docs/DL410-Project-Proposal.docx`: original project proposal.
-
-## Project structure
-
-```
-src/transcripts_fed_vix/
-├── data/         scraping, sentence segmentation, VIX alignment, DataLoader
-├── models/       frozen FinBERT encoder + additive-attention head
-├── training/     manual PyTorch training loop, LR schedule, evaluation metrics
-└── utils/        seed, temporal splits, Chow test, plotting
-configs/default.yaml         single canonical config
-scripts/
-├── build_data.py            scrape + segment + VIX-align to processed parquet
-├── precompute_embeddings.py one-time FinBERT forward over all sentences
-├── train_model.py           train + early-stop + per-segment evaluation
-├── run_regime_analysis.py   Chow test on residuals
-├── run_baselines.py         TF-IDF Ridge + BoW Logistic
-├── export_examples.py       produce the bundled demo data
-├── make_plots.py            generate outputs/figures/*.png
-└── train.sbatch             SLURM entry point
-notebooks/data_demo.ipynb    runnable demo of the DataLoader
-data/example/                ~10 sample documents + embeddings + model (committed)
-```
-
-## Full pipeline (Talapas)
+### Full pipeline on Talapas
 
 ```bash
 ssh ztomlins@login.talapas.uoregon.edu
 cd /home/ztomlins/Transcripts-Fed-VIX-DL
 git pull
 pip install -e .
-sbatch scripts/train.sbatch
-tail -f slurm_logs/train-*.err
+sbatch scripts/sweep.sbatch
+tail -f slurm_logs/sweep-*.err
 ```
 
-The SLURM job runs scrape → segment → VIX-align → FinBERT precompute → train → per-segment evaluation → Chow test → baselines → figure generation. Each stage is idempotent and skips already-completed work; re-runs after a successful scrape are dominated by training (~30 s).
+`scripts/sweep.sbatch` runs scrape, sentence-segment, VIX-align, FinBERT precompute, a 6-cell hyperparameter sweep over `learning_rate` in {1e-4, 3e-4, 1e-3} crossed with `attn_dim` in {128, 256}, per-regime evaluation on the winner, the TF-IDF Ridge baseline, then figure generation. Each stage is idempotent.
 
-Outputs land in `outputs/`:
-- `model.pt` and `train_metrics.json`: trained model + per-epoch metrics
-- `final_report.json`: per-segment regression + binary metrics
-- `regime_analysis.json`: R² by regime + Chow tests
-- `baseline_metrics.json`: TF-IDF Ridge + BoW Logistic
-- `figures/*.png`: training curves, predicted-vs-actual, residuals-over-time with breakpoints, attention heatmaps, etc.
+## Results
+
+After the Talapas sweep completes, fill these in from `outputs/final_report.json` and `outputs/baseline_metrics.json`:
+
+| Segment   | Model MSE | Model R^2 | Model Pearson r | Baseline R^2 | Baseline Pearson r |
+|-----------|-----------|-----------|------------------|--------------|---------------------|
+| Val       | TBD       | TBD       | TBD              | n/a          | n/a                 |
+| Regime 1  | TBD       | TBD       | TBD              | TBD          | TBD                 |
+| Regime 2  | TBD       | TBD       | TBD              | TBD          | TBD                 |
+| Regime 3  | TBD       | TBD       | TBD              | TBD          | TBD                 |
+
+Figures (all in `outputs/figures/`):
+
+1. `training_curve.png`: train MSE and val MSE per epoch with best-epoch marker.
+2. `predicted_vs_actual.png`: scatter of predicted vs. true 3-day VIX change, one panel per non-train segment.
+3. `residuals_over_time.png`: residual scatter over release date with vertical lines at the three regime boundaries.
+4. `regression_comparison.png`: per-regime Pearson r and R^2 for the model vs. TF-IDF Ridge baseline.
+5. `attention_examples.png`: per-sentence attention weights for four representative documents.
+
+A worked inference example plus selected figures lives in `notebooks/eval.ipynb`.
+
+## Limitations and use
+
+- **Small training set.** About 233 pre-2017 documents is small even with frozen embeddings; results have meaningful variance.
+- **Noisy target.** 3-day VIX change is dominated by short-horizon market microstructure; the language-extractable signal is real but modest in magnitude.
+- **Per-regime sample sizes.** Regime 3 has only about 13 documents as of mid-2026, so its metrics are suggestive rather than definitive.
+- **Use case.** Academic study of whether the signal exists, not a trading model. Do not use the predictions for live trading.
+
+## Data and model paths
+
+- **GitHub (bundled example):** `data/example/example_documents.json`, `example_embeddings.pt`, `example_model.pt` (committed; demo notebooks run offline).
+- **Talapas (full corpus):** `/home/ztomlins/Transcripts-Fed-VIX-DL/data/raw/` (scraped HTML, PDF, text, VIX cache) and `/home/ztomlins/Transcripts-Fed-VIX-DL/data/processed/` (`documents.parquet`, `sentence_embeddings.pt`).
+- **Talapas (trained weights):** `/home/ztomlins/Transcripts-Fed-VIX-DL/outputs/model.pt` plus the `*.json` reports for per-epoch, per-segment, and baseline metrics.
+
+## Repository layout
+
+```
+src/transcripts_fed_vix/
+  data/       scraping, sentence segmentation, VIX alignment, DataLoader
+  models/     frozen FinBERT encoder + additive sentence attention head
+  training/   training loop, LR schedule, regression metrics
+  utils/      seed, temporal splits, plotting helpers
+configs/      default.yaml (canonical) + sweep.yaml (6-run grid)
+scripts/      build_data, precompute_embeddings, train_model, run_sweep,
+              run_regime_analysis, run_baselines, make_plots, train.sbatch,
+              sweep.sbatch
+notebooks/    data_demo.ipynb (dataset + dataloader walkthrough),
+              eval.ipynb (trained-model inference + figures)
+docs/         METHODOLOGY.md (full writeup), MILESTONE_REPORT.md,
+              DL410-Project-Proposal.docx
+data/example/ 10 sample documents, embeddings, trained model
+```
 
 ## Environment
 
-- Python ≥ 3.10 (tested 3.12 on Talapas).
-- CUDA-enabled torch wheel matched to your driver (Talapas A100 nodes: cu121 or cu130 works).
-- `FRED_API_KEY` environment variable (free key from <https://fred.stlouisfed.org/docs/api/api_key.html>), required only for the full scrape, not for the demo notebook.
-
-## Data access
-
-- The demo notebook uses 10 bundled example documents at `data/example/`. No external access required.
-- Full corpus is reconstructed from `federalreserve.gov` via `scripts/build_data.py`. Raw HTML/PDF + extracted text are cached under `data/raw/` to make re-runs cheap. The build is fully deterministic given the cached files.
+Python 3.9+ (tested on 3.12 on Talapas). CUDA-enabled torch is required only for the FinBERT precompute step; everything else runs on CPU. The full scrape needs a free `FRED_API_KEY` (https://fred.stlouisfed.org/docs/api/api_key.html).

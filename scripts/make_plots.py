@@ -1,28 +1,24 @@
-"""Generate the project's standard set of visualization figures.
+"""Generate the project's core 5 visualization figures.
 
 Reads:
-    - configs/default.yaml
-    - data/processed/documents.parquet
-    - data/processed/sentence_embeddings.pt
-    - outputs/model.pt
-    - outputs/train_metrics.json
-    - outputs/final_report.json
-    - outputs/baseline_metrics.json
+    configs/default.yaml
+    data/processed/documents.parquet
+    data/processed/sentence_embeddings.pt
+    outputs/model.pt
+    outputs/train_metrics.json
+    outputs/final_report.json
+    outputs/baseline_metrics.json
 
 Writes:
-    outputs/figures/*.png
+    outputs/figures/training_curve.png
+    outputs/figures/predicted_vs_actual.png
+    outputs/figures/residuals_over_time.png
+    outputs/figures/regression_comparison.png
+    outputs/figures/attention_examples.png
 
-All figures listed in the project's visualization-requirements memory:
-    - training_curve.png        (train + val MSE per epoch)
-    - training_pearson.png      (val Pearson r + R^2 per epoch)
-    - lr_schedule.png           (realized LR schedule)
-    - predicted_vs_actual.png   (4-panel scatter per temporal segment)
-    - residuals_over_time.png   (residual scatter with Chow breakpoints)
-    - regression_comparison.png (deep vs TF-IDF Ridge bar chart)
-    - binary_comparison.png     (deep vs BoW Logistic bar chart)
-    - target_distribution.png   (per-segment target histogram)
-    - attention_examples.png    (per-sentence attention weights, 4 docs)
-    - sentence_count_distribution.png (sanity check)
+The regime boundary lines on the residuals-over-time plot use the inauguration
+dates from configs/default.yaml (train_end_date, regime2_start_date,
+regime3_start_date), so they always match the configured temporal splits.
 """
 
 from __future__ import annotations
@@ -40,15 +36,10 @@ from transcripts_fed_vix.utils import make_temporal_splits, SplitDates
 from transcripts_fed_vix.utils.visualize import (
     _load_model_for_inference,
     plot_training_curve,
-    plot_training_pearson,
-    plot_lr_schedule,
     plot_predicted_vs_actual,
     plot_residuals_over_time,
     plot_regression_comparison,
-    plot_binary_comparison,
-    plot_target_distribution,
     plot_attention_examples,
-    plot_sentence_count_distribution,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -91,44 +82,43 @@ def main() -> None:
     else:
         device = torch.device(device_spec)
 
-    # ----- training-history plots (no model needed) -----
+    # The three regime boundaries: end of the training period (start of
+    # regime 1), start of regime 2, and start of regime 3.
+    regime_boundaries = [
+        date.fromisoformat(cfg["splits"]["train_end_date"]),
+        date.fromisoformat(cfg["splits"]["regime2_start_date"]),
+        date.fromisoformat(cfg["splits"]["regime3_start_date"]),
+    ]
+
+    # 1. Training curve (no model needed).
     plot_training_curve(metrics_path, figures_dir / "training_curve.png")
-    plot_training_pearson(metrics_path, figures_dir / "training_pearson.png")
-    plot_lr_schedule(metrics_path, figures_dir / "lr_schedule.png")
 
-    # ----- corpus-level plots (no model needed) -----
-    plot_target_distribution(splits, figures_dir / "target_distribution.png")
-    plot_sentence_count_distribution(
-        documents, figures_dir / "sentence_count_distribution.png",
-        cap=int(cfg["data"]["sentence_cap"]),
-    )
-
-    # ----- comparison bar charts (read JSON only, no model) -----
+    # 4. Per-regime regression comparison (JSON-only, no model needed).
     plot_regression_comparison(
         final_report_path, baseline_metrics_path,
         figures_dir / "regression_comparison.png",
     )
-    plot_binary_comparison(
-        final_report_path, baseline_metrics_path,
-        figures_dir / "binary_comparison.png",
-    )
 
-    # ----- model-driven plots -----
+    # Model-driven plots: load once and reuse.
     model = _load_model_for_inference(model_path, cfg, device)
     batch_size = int(cfg["training"]["batch_size"])
-    breakpoints = [date.fromisoformat(b) for b in cfg["regime_analysis"]["chow_breakpoints"]]
 
+    # 2. Predicted vs actual scatter, one panel per non-train segment.
     plot_predicted_vs_actual(
         splits, embeddings_path, model,
         figures_dir / "predicted_vs_actual.png",
         batch_size=batch_size, device=device,
     )
+
+    # 3. Residuals over time with regime boundary lines.
     plot_residuals_over_time(
         splits, embeddings_path, model,
         figures_dir / "residuals_over_time.png",
         batch_size=batch_size, device=device,
-        breakpoints=breakpoints,
+        regime_boundaries=regime_boundaries,
     )
+
+    # 5. Attention heatmap example for a handful of representative docs.
     plot_attention_examples(
         documents, embeddings_path, model,
         figures_dir / "attention_examples.png",

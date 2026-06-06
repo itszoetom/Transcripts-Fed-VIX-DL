@@ -11,9 +11,8 @@ End-to-end flow:
     7. Save model state dict to outputs/model.pt and metrics to
        outputs/train_metrics.json.
 
-The temporal-generalization regime analysis (R^2 degradation across the
-inauguration-day boundaries, Chow test on residuals) lives in
-scripts/run_regime_analysis.py, that script depends on the best model dumped
+The per-regime evaluation (R^2 across inauguration-day boundaries) lives in
+scripts/run_regime_analysis.py; that script depends on the best model dumped
 here.
 """
 
@@ -34,12 +33,9 @@ from torch.utils.data import DataLoader
 from transcripts_fed_vix.data.build import build_processed_dataset
 from transcripts_fed_vix.data.dataset import EmbeddingDocDataset, collate_padded
 from transcripts_fed_vix.models import SentenceAttentionModel
-from transcripts_fed_vix.models.attention import AttentionConfig
+from transcripts_fed_vix.models.attention import AttentionConfig, attention_config_from_dict
 from transcripts_fed_vix.training import train
-from transcripts_fed_vix.training.eval import (
-    regression_metrics,
-    binary_classification_metrics,
-)
+from transcripts_fed_vix.training.eval import regression_metrics
 from transcripts_fed_vix.training.loop import TrainConfig
 from transcripts_fed_vix.utils import set_seed, make_temporal_splits, SplitDates
 
@@ -135,11 +131,7 @@ def main() -> None:
     )
 
     # ----- model -----
-    model_cfg = AttentionConfig(
-        embed_dim=int(cfg["model"]["embed_dim"]),
-        attn_dim=int(cfg["model"]["attn_dim"]),
-        dropout=float(cfg["model"]["dropout"]),
-    )
+    model_cfg = attention_config_from_dict(cfg["model"])
     model = SentenceAttentionModel(model_cfg)
     logger.info("trainable params: %d",
                 sum(p.numel() for p in model.parameters() if p.requires_grad))
@@ -174,17 +166,12 @@ def main() -> None:
     model.load_state_dict(torch.load(model_save_path, map_location=device, weights_only=True))
     model.to(device)
 
-    # Training median as the binarization threshold. Computed on the train
-    # split, not val/test, to avoid information leakage into evaluation.
-    train_median = float(np.median(splits.train["target"].values))
-
     final_report: dict[str, dict] = {
         "split_dates": {
             "train_end_date": cfg["splits"]["train_end_date"],
             "regime2_start_date": cfg["splits"]["regime2_start_date"],
             "regime3_start_date": cfg["splits"]["regime3_start_date"],
         },
-        "train_median_target": train_median,
         "best_epoch": result.best_epoch,
     }
 
@@ -200,8 +187,7 @@ def main() -> None:
         loader = _build_loader(split_df, embeddings_path, train_cfg.batch_size)
         preds, tgts = _predict(model, loader, device)
         rm = regression_metrics(preds, tgts)
-        bm = binary_classification_metrics(preds, tgts, threshold=train_median)
-        final_report[name] = {"regression": rm.to_dict(), "binary": bm.to_dict()}
+        final_report[name] = {"regression": rm.to_dict()}
 
     final_report_path.write_text(json.dumps(final_report, indent=2))
     logger.info("final report written to %s", final_report_path)

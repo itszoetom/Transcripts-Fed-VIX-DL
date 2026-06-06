@@ -9,8 +9,9 @@ Why NLTK punkt:
     the write-up uncomplicated.
 
 Why a hard cap at 80 sentences (SENTENCE_CAP):
-    FOMC minutes run 5,000–10,000 words (typically 250–500 sentences) and HH
-    testimony is shorter (~100–250 sentences). We truncate to the first 80
+    FOMC minutes run 5,000 to 10,000 words (typically 250 to 500 sentences)
+    and HH testimony is shorter (~100 to 250 sentences). We truncate to the
+    first 80
     sentences for three reasons:
 
         1. The opening sections of these documents contain the policy

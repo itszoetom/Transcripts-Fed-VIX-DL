@@ -43,12 +43,12 @@ class AttentionConfig:
     """Hyperparameters of the SentenceAttentionModel.
 
     Attributes:
-        embed_dim: Dimensionality of the per-sentence input embeddings (768
-                   for FinBERT-base).
-        attn_dim:  Dimensionality of the additive-attention hidden projection.
-        dropout:   Dropout applied to the document vector before the regression
-                   head. Helps regularize the small head against the tiny
-                   dataset.
+        embed_dim:  Dimensionality of the per-sentence input embeddings (768
+                    for FinBERT-base).
+        attn_dim:   Dimensionality of the additive-attention hidden projection.
+        dropout:    Dropout applied to the document vector before the regression
+                    head. Helps regularize the small head against the tiny
+                    dataset.
     """
 
     embed_dim: int = 768
@@ -103,10 +103,9 @@ class SentenceAttentionModel(nn.Module):
         # config.dropout=0.0 if undesired.
         self.dropout = nn.Dropout(self.config.dropout)
 
-        # Linear regression head. One output: 3-day VIX change.
+        # Linear regression head: single nn.Linear(embed_dim -> 1). Smallest
+        # possible head; appropriate for the ~233-document training pool.
         self.head = nn.Linear(self.config.embed_dim, 1)
-
-        # Sensible init for the regression head, small Gaussian works fine.
         nn.init.normal_(self.head.weight, std=0.02)
         nn.init.zeros_(self.head.bias)
 
@@ -149,3 +148,18 @@ class SentenceAttentionModel(nn.Module):
     def trainable_parameters(self) -> list[nn.Parameter]:
         """Return only parameters that require grad, by design, all of them."""
         return [p for p in self.parameters() if p.requires_grad]
+
+
+def attention_config_from_dict(model_cfg: dict) -> AttentionConfig:
+    """Build an AttentionConfig from a configs/default.yaml-style dict.
+
+    Single place to read AttentionConfig fields from YAML so that adding a new
+    hyperparameter only requires updating one call site. Missing keys fall back
+    to AttentionConfig dataclass defaults.
+    """
+    defaults = AttentionConfig()
+    return AttentionConfig(
+        embed_dim=int(model_cfg.get("embed_dim", defaults.embed_dim)),
+        attn_dim=int(model_cfg.get("attn_dim", defaults.attn_dim)),
+        dropout=float(model_cfg.get("dropout", defaults.dropout)),
+    )

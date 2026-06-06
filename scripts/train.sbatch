@@ -50,10 +50,10 @@ python scripts/precompute_embeddings.py --config configs/default.yaml
 # 3. Train the sentence-attention model with early stopping.
 python scripts/train_model.py --config configs/default.yaml
 
-# 4. Run the temporal-generalization + Chow-test regime analysis.
+# 4. Run the per-regime evaluation (R^2 / Pearson r on each test regime).
 python scripts/run_regime_analysis.py --config configs/default.yaml
 
-# 5. Run the TF-IDF Ridge + BoW Logistic baselines on the same splits.
+# 5. Run the TF-IDF Ridge baseline on the same splits.
 python scripts/run_baselines.py --config configs/default.yaml
 
 # 6. Generate the standard set of project figures (training curves, scatter,

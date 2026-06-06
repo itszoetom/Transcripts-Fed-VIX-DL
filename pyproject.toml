@@ -33,8 +33,6 @@ dependencies = [
     "pypdf",
     # NLP preprocessing
     "nltk",          # punkt sentence segmenter
-    # Statistics for regime-change analysis
-    "statsmodels",   # OLS for Chow-test residuals
     # Utilities
     "PyYAML",
     "tqdm",

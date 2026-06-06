@@ -3,16 +3,15 @@
 Public surface:
     loop.train
     schedule.linear_warmup
-    eval.regression_metrics, eval.binary_classification_metrics
+    eval.regression_metrics
 """
 
 from .loop import train
 from .schedule import linear_warmup
-from .eval import regression_metrics, binary_classification_metrics
+from .eval import regression_metrics
 
 __all__ = [
     "train",
     "linear_warmup",
     "regression_metrics",
-    "binary_classification_metrics",
 ]

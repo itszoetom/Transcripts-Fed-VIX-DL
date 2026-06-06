@@ -1,0 +1,39 @@
+# Hyperparameter sweep specification.
+#
+# Each top-level field under `grid` is a list of values; `scripts/run_sweep.py`
+# enumerates the full Cartesian product, applies each combination as a patch
+# on top of configs/default.yaml, and trains one model per combination.
+#
+# Keep the grid small. Each run is ~30 sec on the A100 MIG, so a 6-cell grid
+# finishes in a few minutes of wall time including data load and summary
+# writes.
+
+# Path to the base config that the sweep patches on top of.
+base_config: configs/default.yaml
+
+# Where to put per-run artifacts. The winning run's model + metrics are also
+# copied to `outputs/` directly so downstream scripts (regime analysis,
+# baselines, plotting) see a single "current best" model.
+sweep_dir: outputs/sweep
+
+# Fixed overrides applied to EVERY run, regardless of grid point. These reflect
+# the conclusion from the milestone run that the default 30-epoch / patience-5
+# budget was too short to see whether the head could converge.
+fixed_overrides:
+  training:
+    epochs: 100
+    early_stop_patience: 10
+    warmup_fraction: 0.1
+  model:
+    dropout: 0.1
+
+# Cartesian-product grid. The Python sweep runner enumerates these and merges
+# each combination under the model / training sections of the base config.
+grid:
+  learning_rate:        [0.0001, 0.0003, 0.001]
+  attn_dim:             [128, 256]
+
+# How to pick the winning run. "val_mse" = lowest validation MSE (the early-
+# stopping criterion). Other options the runner understands: "val_pearson_r"
+# (highest), "val_r2" (highest).
+selection_metric: val_mse

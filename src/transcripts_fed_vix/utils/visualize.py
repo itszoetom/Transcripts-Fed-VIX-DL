@@ -1,19 +1,23 @@
 """Project figure generation.
 
-One function per figure; each takes paths/dataframes/models, writes a PNG to
-the configured output directory, and returns the saved path. The script
+Exposes one function per figure. Each takes paths or dataframes plus the model,
+writes a PNG to the configured output directory, and returns the saved path.
 `scripts/make_plots.py` is the CLI orchestrator that calls all of these.
 
-All figures use matplotlib with the default style. The intent is reproducible,
-publication-ready figures (300 dpi, tight bbox) without any seaborn dependency
-beyond what's already in the project.
+Figures (the project's core 5):
+    1. Training curve: train MSE + val MSE per epoch with the best-epoch marker
+    2. Predicted vs actual scatter, one panel per non-train segment
+    3. Residuals over time, with vertical lines at regime boundaries
+    4. Per-regime regression bar chart, sentence-attention model vs baseline
+    5. Attention-weight heatmap for a handful of representative documents
+
+All figures use matplotlib (no seaborn dependency), 300 dpi, tight bbox.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 from typing import Sequence
@@ -28,7 +32,7 @@ from torch.utils.data import DataLoader
 
 from ..data.dataset import EmbeddingDocDataset, collate_padded
 from ..models import SentenceAttentionModel
-from ..models.attention import AttentionConfig
+from ..models.attention import AttentionConfig, attention_config_from_dict
 from ..utils.splits import TemporalSplits
 
 logger = logging.getLogger(__name__)
@@ -58,11 +62,7 @@ def _load_model_for_inference(
     device: torch.device,
 ) -> SentenceAttentionModel:
     """Load the trained SentenceAttentionModel for inference."""
-    attn_cfg = AttentionConfig(
-        embed_dim=int(cfg["model"]["embed_dim"]),
-        attn_dim=int(cfg["model"]["attn_dim"]),
-        dropout=float(cfg["model"]["dropout"]),
-    )
+    attn_cfg = attention_config_from_dict(cfg["model"])
     model = SentenceAttentionModel(attn_cfg)
     model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
     model.to(device)
@@ -126,7 +126,7 @@ def _predict_split(
 
 
 # ---------------------------------------------------------------------------
-# 1. Training curves
+# 1. Training curve (train MSE + val MSE)
 # ---------------------------------------------------------------------------
 
 
@@ -153,40 +153,6 @@ def plot_training_curve(metrics_path: Path, out_path: Path) -> Path:
     return _save(fig, out_path)
 
 
-def plot_training_pearson(metrics_path: Path, out_path: Path) -> Path:
-    """Plot val Pearson r per epoch."""
-    history = json.loads(metrics_path.read_text())["history"]
-    epochs = [h["epoch"] for h in history]
-    val_r = [h["val_pearson_r"] for h in history]
-    val_r2 = [h["val_r2"] for h in history]
-
-    fig, ax = plt.subplots(figsize=(6.5, 4.0))
-    ax.plot(epochs, val_r, marker="o", label="val Pearson r")
-    ax.plot(epochs, val_r2, marker="s", label="val R^2")
-    ax.axhline(0, color="gray", linewidth=0.8, alpha=0.5)
-    ax.set_xlabel("Epoch")
-    ax.set_ylabel("Score")
-    ax.set_title("Validation correlation / R^2 per epoch")
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    return _save(fig, out_path)
-
-
-def plot_lr_schedule(metrics_path: Path, out_path: Path) -> Path:
-    """Plot the realized LR schedule per epoch (warmup + post-warmup constant)."""
-    history = json.loads(metrics_path.read_text())["history"]
-    epochs = [h["epoch"] for h in history]
-    lrs = [h["lr"] for h in history]
-
-    fig, ax = plt.subplots(figsize=(6.5, 3.5))
-    ax.plot(epochs, lrs, marker="o")
-    ax.set_xlabel("Epoch")
-    ax.set_ylabel("Learning rate")
-    ax.set_title("Realized LR schedule (linear warmup → constant)")
-    ax.grid(True, alpha=0.3)
-    return _save(fig, out_path)
-
-
 # ---------------------------------------------------------------------------
 # 2. Predicted vs actual scatter (per temporal segment)
 # ---------------------------------------------------------------------------
@@ -201,12 +167,12 @@ def plot_predicted_vs_actual(
     batch_size: int,
     device: torch.device,
 ) -> Path:
-    """One scatter panel per non-train segment with y=x reference line."""
+    """One scatter panel per non-train segment with a y=x reference line."""
     segments = [
         ("val (pre-2017)", splits.val),
-        ("regime1: 2017–2021", splits.regime1),
-        ("regime2: 2021–2025", splits.regime2),
-        ("regime3: 2025–present", splits.regime3),
+        ("regime1: 2017 to 2021", splits.regime1),
+        ("regime2: 2021 to 2025", splits.regime2),
+        ("regime3: 2025 to present", splits.regime3),
     ]
 
     fig, axes = plt.subplots(2, 2, figsize=(9.0, 8.0), sharex=False, sharey=False)
@@ -246,13 +212,12 @@ def plot_residuals_over_time(
     *,
     batch_size: int,
     device: torch.device,
-    breakpoints: Sequence[date],
+    regime_boundaries: Sequence[date],
 ) -> Path:
-    """Residuals (target - prediction) scattered over release_date for all docs.
+    """Residuals (target minus prediction) scattered over release_date for all docs.
 
-    Vertical lines mark the configured Chow breakpoints; horizontal lines
-    mark per-segment mean residuals so the reader can see whether the residual
-    bias shifts across regimes.
+    Vertical lines mark the regime boundary dates (inauguration days) so the
+    reader can see whether the residual bias shifts across regimes.
     """
     # Run inference on every segment and concat into a single timeline.
     pieces: list[dict] = []
@@ -272,17 +237,11 @@ def plot_residuals_over_time(
 
     all_dates: list[pd.Timestamp] = []
     all_resid: list[float] = []
-    segment_means: list[tuple[str, float, float, float]] = []  # (name, start, end, mean)
     for label, p in zip(labels, pieces):
         dates_p = pd.to_datetime(p["release_dates"])
         resid = p["targets"] - p["predictions"]
         all_dates.extend(dates_p.tolist())
         all_resid.extend(resid.tolist())
-        if len(resid) > 0:
-            segment_means.append((label,
-                                  float(pd.Timestamp(min(dates_p)).timestamp()),
-                                  float(pd.Timestamp(max(dates_p)).timestamp()),
-                                  float(np.mean(resid))))
 
     df_all = pd.DataFrame({"date": all_dates, "residual": all_resid})
     df_all = df_all.sort_values("date")
@@ -290,12 +249,12 @@ def plot_residuals_over_time(
     fig, ax = plt.subplots(figsize=(10.5, 4.5))
     ax.axhline(0, color="gray", linewidth=0.8, alpha=0.5)
     ax.scatter(df_all["date"], df_all["residual"], alpha=0.5, s=14)
-    for bp in breakpoints:
+    for bp in regime_boundaries:
         ax.axvline(pd.Timestamp(bp), color="red", linestyle="--", alpha=0.6,
-                   label=f"breakpoint {bp.isoformat()}")
+                   label=f"regime boundary {bp.isoformat()}")
     ax.set_xlabel("Release date")
-    ax.set_ylabel("Residual (target − prediction)")
-    ax.set_title("Model residuals over time, with regime-change breakpoints")
+    ax.set_ylabel("Residual (target minus prediction)")
+    ax.set_title("Model residuals over time, with regime boundary lines")
     # Dedupe legend entries.
     handles, labels_legend = ax.get_legend_handles_labels()
     seen = set()
@@ -311,7 +270,7 @@ def plot_residuals_over_time(
 
 
 # ---------------------------------------------------------------------------
-# 4. Per-regime comparison bar charts (deep model vs baselines)
+# 4. Per-regime regression comparison (deep model vs TF-IDF Ridge baseline)
 # ---------------------------------------------------------------------------
 
 
@@ -355,81 +314,8 @@ def plot_regression_comparison(
     return _save(fig, out_path)
 
 
-def plot_binary_comparison(
-    final_report_path: Path,
-    baseline_metrics_path: Path,
-    out_path: Path,
-) -> Path:
-    """Grouped bar chart: deep model vs BoW Logistic regression on AUC + F1."""
-    fr = json.loads(final_report_path.read_text())
-    bl = json.loads(baseline_metrics_path.read_text())
-    regimes = ["regime1_2017_2021", "regime2_2021_2025", "regime3_2025_present"]
-
-    deep_auc = [fr.get(r, {}).get("binary", {}).get("auc_roc", float("nan")) for r in regimes]
-    base_auc = [bl.get(r, {}).get("bow_logreg", {}).get("auc_roc", float("nan")) for r in regimes]
-    deep_f1 = [fr.get(r, {}).get("binary", {}).get("f1", float("nan")) for r in regimes]
-    base_f1 = [bl.get(r, {}).get("bow_logreg", {}).get("f1", float("nan")) for r in regimes]
-
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.5))
-    x = np.arange(len(regimes))
-    width = 0.38
-
-    axes[0].bar(x - width / 2, deep_auc, width, label="Sentence-attention model")
-    axes[0].bar(x + width / 2, base_auc, width, label="BoW Logistic baseline")
-    axes[0].axhline(0.5, color="gray", linestyle="--", linewidth=0.8, alpha=0.5,
-                    label="chance (0.5)")
-    axes[0].set_xticks(x); axes[0].set_xticklabels([r.replace("_", "\n") for r in regimes], fontsize=8)
-    axes[0].set_ylabel("AUC-ROC")
-    axes[0].set_title("AUC-ROC by regime")
-    axes[0].set_ylim(0, 1)
-    axes[0].legend(fontsize=8); axes[0].grid(True, alpha=0.3)
-
-    axes[1].bar(x - width / 2, deep_f1, width, label="Sentence-attention model")
-    axes[1].bar(x + width / 2, base_f1, width, label="BoW Logistic baseline")
-    axes[1].set_xticks(x); axes[1].set_xticklabels([r.replace("_", "\n") for r in regimes], fontsize=8)
-    axes[1].set_ylabel("F1")
-    axes[1].set_title("F1 by regime")
-    axes[1].set_ylim(0, 1)
-    axes[1].legend(fontsize=8); axes[1].grid(True, alpha=0.3)
-
-    fig.suptitle("Binary classification performance: model vs baseline, by regime")
-    fig.tight_layout()
-    return _save(fig, out_path)
-
-
 # ---------------------------------------------------------------------------
-# 5. Target distribution by regime
-# ---------------------------------------------------------------------------
-
-
-def plot_target_distribution(
-    splits: TemporalSplits,
-    out_path: Path,
-) -> Path:
-    """Overlaid histogram of the 3-day VIX-change target, per temporal segment."""
-    fig, ax = plt.subplots(figsize=(8, 4.5))
-    bins = np.linspace(-15, 15, 40)
-    for name, df in [
-        ("train (1993–~2014)", splits.train),
-        ("val (~2014–2017)", splits.val),
-        ("regime1 (2017–2021)", splits.regime1),
-        ("regime2 (2021–2025)", splits.regime2),
-        ("regime3 (2025–)", splits.regime3),
-    ]:
-        if len(df) == 0:
-            continue
-        ax.hist(df["target"], bins=bins, alpha=0.45, label=f"{name}  n={len(df)}")
-    ax.axvline(0, color="gray", linewidth=0.8, alpha=0.5)
-    ax.set_xlabel("3-day VIX change")
-    ax.set_ylabel("Document count")
-    ax.set_title("Target distribution by temporal segment")
-    ax.legend(fontsize=8)
-    ax.grid(True, alpha=0.3)
-    return _save(fig, out_path)
-
-
-# ---------------------------------------------------------------------------
-# 6. Attention heatmaps
+# 5. Attention heatmaps for representative documents
 # ---------------------------------------------------------------------------
 
 
@@ -446,8 +332,8 @@ def plot_attention_examples(
 ) -> Path:
     """For a handful of representative docs, show per-sentence attention weights.
 
-    We pick documents that span the date range (oldest, ~33rd percentile,
-    ~66th percentile, most recent), so the figure illustrates whether the model
+    Picks documents that span the date range (oldest, ~33rd percentile,
+    ~66th percentile, most recent) so the figure illustrates whether the model
     attends to different sentences across eras.
     """
     if len(documents_df) == 0:
@@ -471,7 +357,7 @@ def plot_attention_examples(
         idx = np.arange(len(attn))
         ax.barh(idx, attn, color="#4C78A8")
         labels = [
-            (s[:max_label_chars] + "…") if len(s) > max_label_chars else s
+            (s[:max_label_chars] + "...") if len(s) > max_label_chars else s
             for s in sents
         ]
         ax.set_yticks(idx)
@@ -487,27 +373,4 @@ def plot_attention_examples(
 
     fig.suptitle("Per-sentence attention weights for representative documents", y=1.001)
     fig.tight_layout()
-    return _save(fig, out_path)
-
-
-# ---------------------------------------------------------------------------
-# 7. Sentence count distribution
-# ---------------------------------------------------------------------------
-
-
-def plot_sentence_count_distribution(
-    documents_df: pd.DataFrame,
-    out_path: Path,
-    *,
-    cap: int,
-) -> Path:
-    """Histogram of n_sentences per document (sanity check: most should hit the cap)."""
-    fig, ax = plt.subplots(figsize=(7, 4))
-    ax.hist(documents_df["n_sentences"], bins=np.arange(0, cap + 5, 2))
-    ax.axvline(cap, color="red", linestyle="--", alpha=0.6, label=f"cap = {cap}")
-    ax.set_xlabel("Sentences per document (after segmentation, pre-cap)")
-    ax.set_ylabel("Document count")
-    ax.set_title("Sentence count distribution across the corpus")
-    ax.legend()
-    ax.grid(True, alpha=0.3)
     return _save(fig, out_path)

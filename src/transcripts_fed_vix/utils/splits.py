@@ -1,25 +1,19 @@
-"""Temporal splits for training and regime analysis.
+"""Temporal splits for training and per-regime evaluation.
 
-The pipeline uses two layered split decisions:
+The hold-out structure:
+    train:  documents released  <  2017-01-20  (Trump 1 inauguration)
+    val:    last 15% of the train range chronologically, used only for
+            early stopping. Carved AFTER the pre-2017 cutoff so that
+            nothing later than 2017-01-20 ever sees gradients or
+            hyperparameter signal.
+    test1:  2017-01-20 <= release_date < 2021-01-20  (Trump 1 era)
+    test2:  2021-01-20 <= release_date < 2025-01-20  (Biden era)
+    test3:  2025-01-20 <= release_date              (Trump 2 era; sparse)
 
-  1. **Hold-out structure** (the primary modeling split):
-     - train:  documents released  <  2017-01-20  (Trump 1 inauguration)
-     - val:    last 15% of the train range chronologically, used only for
-               early stopping. Carved AFTER the pre-2017 cutoff so that
-               nothing later than 2017-01-20 ever sees gradients or
-               hyperparameter signal.
-     - test1:  2017-01-20 <= release_date < 2021-01-20  (Trump 1 era)
-     - test2:  2021-01-20 <= release_date < 2025-01-20  (Biden era)
-     - test3:  2025-01-20 <= release_date              (Trump 2 era; sparse)
-
-     We anchor split dates to U.S. presidential inauguration days because the
-     secondary research question is whether the model's accuracy degrades
-     across political regimes. Using the exact inauguration date avoids the
-     ambiguity of "January 2017" / "January 2021".
-
-  2. **Chow-test breakpoints** (the regime-change inference):
-     Same dates (2017-01-20 and 2025-01-20) used as breakpoints in
-     utils.chow.
+We anchor split dates to U.S. presidential inauguration days because the
+secondary research question is whether the model's accuracy degrades across
+political regimes. Using the exact inauguration date avoids the ambiguity of
+"January 2017" or "January 2021".
 
 All splits are *temporal*, no random shuffling. Sort is by release_date,
 ascending.
