@@ -147,7 +147,7 @@ def load_example_documents(example_dir: Path | None = None) -> pd.DataFrame:
     """Load the bundled example documents JSON as a DataFrame.
 
     Schema matches the full processed parquet (doc_id, source, release_date,
-    aligned_trading_date, vix_t, vix_t_plus_3, target, sentences), so any
+    aligned_trading_date, vix_t, vix_t_plus_h, target, sentences), so any
     code that works on the full dataset works on the example.
     """
     example_dir = example_dir or _default_example_dir()

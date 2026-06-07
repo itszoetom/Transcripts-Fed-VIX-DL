@@ -5,7 +5,7 @@ Orchestrates:
     scrape FOMC + Humphrey-Hawkins
         -> segment each document into the first 80 sentences (NLTK punkt)
             -> fetch VIX closes (FRED VIXCLS) and align to next trading day
-                -> compute 3-day forward VIX change as the regression target
+                -> compute h-day forward VIX change as the regression target
                     -> persist a single parquet under data/processed/
 
 Output columns (one row per document):
@@ -15,14 +15,17 @@ Output columns (one row per document):
     release_date          date   document's public release date
     aligned_trading_date  date   first VIX trading day >= release_date
     vix_t                 float  VIX close on aligned_trading_date
-    vix_t_plus_3          float  VIX close 3 trading days later
-    target                float  vix_t_plus_3 - vix_t  (regression target)
+    vix_t_plus_h          float  VIX close h trading days later
+    target                float  vix_t_plus_h - vix_t  (regression target)
     sentences             list[str]   first 80 sentences of the document
     url                   str    URL the text was scraped from
 
 The function is idempotent: re-running with everything already on disk just
 returns the cached parquet. Pass `force=True` to rebuild from scraped raw
-files (without re-downloading).
+files (without re-downloading). The target horizon is read from the caller
+(default 3 trading days, matching the vix.py default) and recorded in
+build_summary.json so downstream code can verify which horizon a cached
+parquet was built with.
 """
 
 from __future__ import annotations
@@ -36,7 +39,7 @@ import pandas as pd
 
 from .scrape import scrape_fomc_minutes, scrape_humphrey_hawkins, scraped_docs_to_records
 from .segment import segment_document, SENTENCE_CAP
-from .vix import fetch_vix, compute_forward_change
+from .vix import fetch_vix, compute_forward_change, TARGET_HORIZON_TRADING_DAYS
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +51,7 @@ def build_processed_dataset(
     processed_filename: str = "documents.parquet",
     vix_cache_filename: str = "vix.csv",
     force: bool = False,
+    target_horizon_trading_days: int = TARGET_HORIZON_TRADING_DAYS,
 ) -> pd.DataFrame:
     """Build (or load) the processed dataset.
 
@@ -59,6 +63,9 @@ def build_processed_dataset(
         force:              If True, rebuild the parquet even if it already
                             exists. Does not force re-scraping (scrape cache
                             files under raw_dir are still respected).
+        target_horizon_trading_days: Forward horizon (in trading days) for the
+                            VIX-change target. Threaded through to the VIX
+                            alignment step and recorded in build_summary.json.
 
     Returns:
         DataFrame with the schema described in the module docstring.
@@ -101,7 +108,10 @@ def build_processed_dataset(
             dropped += 1
             logger.warning("dropping %s: empty after segmentation", doc.doc_id)
             continue
-        align = compute_forward_change(doc.release_date, vix)
+        align = compute_forward_change(
+            doc.release_date, vix,
+            horizon_trading_days=target_horizon_trading_days,
+        )
         if align is None:
             dropped += 1
             logger.warning("dropping %s: no VIX target available (too recent or too old)", doc.doc_id)
@@ -113,7 +123,7 @@ def build_processed_dataset(
                 "release_date": doc.release_date,
                 "aligned_trading_date": align.aligned_trading_date,
                 "vix_t": align.vix_t,
-                "vix_t_plus_3": align.vix_t_plus_h,
+                "vix_t_plus_h": align.vix_t_plus_h,
                 "target": align.target,
                 "sentences": sents,
                 "url": doc.url,
@@ -145,6 +155,7 @@ def build_processed_dataset(
         "first_release": str(df["release_date"].min().date()),
         "last_release": str(df["release_date"].max().date()),
         "sentence_cap": SENTENCE_CAP,
+        "target_horizon_trading_days": int(target_horizon_trading_days),
     }
     (processed_dir / "build_summary.json").write_text(json.dumps(summary, indent=2))
     return df

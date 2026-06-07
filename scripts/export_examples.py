@@ -89,7 +89,7 @@ def main() -> None:
             "release_date": pd.Timestamp(row["release_date"]).date().isoformat(),
             "aligned_trading_date": pd.Timestamp(row["aligned_trading_date"]).date().isoformat(),
             "vix_t": float(row["vix_t"]),
-            "vix_t_plus_3": float(row["vix_t_plus_3"]),
+            "vix_t_plus_h": float(row["vix_t_plus_h"]),
             "target": float(row["target"]),
             "sentences": sents,
         })

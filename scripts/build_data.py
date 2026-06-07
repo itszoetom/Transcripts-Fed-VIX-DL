@@ -34,6 +34,7 @@ def main() -> None:
         processed_dir=Path(cfg["data"]["processed_dir"]),
         processed_filename=cfg["data"]["documents_file"],
         force=args.force,
+        target_horizon_trading_days=int(cfg["data"]["target_horizon_trading_days"]),
     )
     print(f"processed dataset: {len(df)} rows | "
           f"date range: {df['release_date'].min().date()} .. {df['release_date'].max().date()}")

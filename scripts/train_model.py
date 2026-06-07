@@ -103,8 +103,12 @@ def main() -> None:
     # ----- data build (idempotent) -----
     if not documents_path.exists():
         logger.info("processed dataset missing, building from raw scrape")
-        build_processed_dataset(raw_dir=raw_dir, processed_dir=processed_dir,
-                                processed_filename=cfg["data"]["documents_file"])
+        build_processed_dataset(
+            raw_dir=raw_dir,
+            processed_dir=processed_dir,
+            processed_filename=cfg["data"]["documents_file"],
+            target_horizon_trading_days=int(cfg["data"]["target_horizon_trading_days"]),
+        )
     documents = pd.read_parquet(documents_path)
     logger.info("loaded %d processed documents", len(documents))
 
