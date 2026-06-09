@@ -30,8 +30,8 @@ import yaml
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import Ridge
 
-from transcripts_fed_vix.training.eval import regression_metrics
-from transcripts_fed_vix.utils import make_temporal_splits, SplitDates
+from attention_fed_vix.training.eval import regression_metrics
+from attention_fed_vix.utils import make_temporal_splits, SplitDates
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("run_baselines")

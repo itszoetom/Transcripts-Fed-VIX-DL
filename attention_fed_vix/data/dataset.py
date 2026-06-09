@@ -2,7 +2,7 @@
 
 Because FinBERT is frozen, every sentence's embedding is deterministic and can
 be computed once, cached, and reused every epoch. That's done by
-scripts/precompute_embeddings.py, which writes a dict
+attention_fed_vix/scripts/precompute_embeddings.py, which writes a dict
 
     {doc_id: torch.FloatTensor of shape (N_sents, 768)}
 
@@ -134,12 +134,12 @@ def collate_padded(batch: Sequence[DatasetItem]) -> dict[str, torch.Tensor | lis
 def _default_example_dir() -> Path:
     """Locate `data/example/` at the repo root, regardless of CWD.
 
-    `__file__` is `<repo_root>/src/transcripts_fed_vix/data/dataset.py` under an
-    editable `pip install -e .`, so `parents[3]` is the repo root. The result
+    `__file__` is `<repo_root>/attention_fed_vix/data/dataset.py` under an
+    editable `pip install -e .`, so `parents[2]` is the repo root. The result
     does NOT depend on the caller's CWD, so this works equally well from a
     notebook in `notebooks/`, a script in `scripts/`, or the repo root.
     """
-    repo_root = Path(__file__).resolve().parents[3]
+    repo_root = Path(__file__).resolve().parents[2]
     return repo_root / "data" / "example"
 
 
@@ -155,7 +155,7 @@ def load_example_documents(example_dir: Path | None = None) -> pd.DataFrame:
     if not json_path.exists():
         raise FileNotFoundError(
             f"Example data missing: {json_path}. "
-            "Run scripts/export_examples.py on the cluster (or wherever the "
+            "Run attention_fed_vix/scripts/export_examples.py on the cluster (or wherever the "
             "full processed parquet lives) to generate the bundled examples."
         )
     records = json.loads(json_path.read_text())
@@ -195,7 +195,7 @@ def get_example_dataloader(
     if not emb_path.exists():
         raise FileNotFoundError(
             f"Example embeddings missing: {emb_path}. "
-            "Run scripts/export_examples.py to generate."
+            "Run attention_fed_vix/scripts/export_examples.py to generate."
         )
     ds = EmbeddingDocDataset(df, embeddings_path=emb_path)
     return DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=0,

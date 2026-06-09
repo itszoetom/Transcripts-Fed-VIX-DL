@@ -34,7 +34,7 @@ data:
 
   # Hard cap on sentences per document. The first 80 sentences contain the
   # policy rationale; later sections (voting record, operational details)
-  # are lower signal. See src/transcripts_fed_vix/data/segment.py for the
+  # are lower signal. See attention_fed_vix/data/segment.py for the
   # full rationale.
   sentence_cap: 80
 

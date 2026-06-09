@@ -32,8 +32,8 @@ import pandas as pd
 import torch
 import yaml
 
-from transcripts_fed_vix.utils import make_temporal_splits, SplitDates
-from transcripts_fed_vix.utils.visualize import (
+from attention_fed_vix.utils import make_temporal_splits, SplitDates
+from attention_fed_vix.utils.visualize import (
     _load_model_for_inference,
     plot_training_curve,
     plot_predicted_vs_actual,

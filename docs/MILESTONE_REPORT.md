@@ -2,7 +2,7 @@
 
 **Project:** Frozen FinBERT plus learned sentence attention for 3-day VIX prediction from Federal Reserve text across political regimes
 **Name:** Zoe Tomlinson
-**Repo:** https://github.com/itszoetom/Transcripts-Fed-VIX-DL
+**Repo:** https://github.com/itszoetom/attention-fed-vix
 **Notebook:** `notebooks/data_demo.ipynb`
 
 ## 1. What problem will you be investigating? Why is it interesting to you?

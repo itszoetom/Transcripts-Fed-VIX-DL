@@ -6,7 +6,7 @@ rather than cropping the PNG so the result is at full resolution and matches
 the look of the original.
 
 Run from the repo root:
-    python scripts/make_pearson_only_figure.py
+    python -m attention_fed_vix.scripts.make_pearson_only_figure
 """
 
 from __future__ import annotations

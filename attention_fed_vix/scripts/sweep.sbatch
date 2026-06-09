@@ -16,8 +16,8 @@
 # up unchanged.
 #
 # After this job finishes, the recommended sequence is:
-#   sbatch scripts/train.sbatch              # only re-runs regime + baseline + plots
-#   python scripts/export_examples.py        # re-bundles demo with the winning model
+#   sbatch attention_fed_vix/scripts/train.sbatch              # only re-runs regime + baseline + plots
+#   python -m attention_fed_vix.scripts.export_examples        # re-bundles demo with the winning model
 
 set -euo pipefail
 
@@ -26,20 +26,20 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate base
 export LD_LIBRARY_PATH="$CONDA_PREFIX/lib:${LD_LIBRARY_PATH:-}"
 
-cd /home/ztomlins/Transcripts-Fed-VIX-DL
+cd /home/ztomlins/attention-fed-vix
 
 python -c "import torch; print(f'torch {torch.__version__} | cuda: {torch.cuda.is_available()} | dev: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"cpu\"}')"
 
 # Ensure data + embeddings are in place. These are no-ops on cached state.
-python scripts/build_data.py --config configs/default.yaml
-python scripts/precompute_embeddings.py --config configs/default.yaml
+python -m attention_fed_vix.scripts.build_data --config configs/default.yaml
+python -m attention_fed_vix.scripts.precompute_embeddings --config configs/default.yaml
 
 # Run the sweep. --skip-completed makes the job resumable if it gets pre-empted.
-python scripts/run_sweep.py --config configs/sweep.yaml --skip-completed
+python -m attention_fed_vix.scripts.run_sweep --config configs/sweep.yaml --skip-completed
 
 # Generate final figures from the promoted winner.
-python scripts/run_regime_analysis.py --config configs/default.yaml
-python scripts/run_baselines.py --config configs/default.yaml
-python scripts/make_plots.py --config configs/default.yaml
+python -m attention_fed_vix.scripts.run_regime_analysis --config configs/default.yaml
+python -m attention_fed_vix.scripts.run_baselines --config configs/default.yaml
+python -m attention_fed_vix.scripts.make_plots --config configs/default.yaml
 
 echo "Sweep complete. Winner promoted to outputs/. See outputs/sweep/sweep_table.csv for the full grid."

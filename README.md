@@ -1,4 +1,4 @@
-# Transcripts-Fed-VIX-DL
+# attention-fed-vix
 
 Predicting the 10-day forward change in the VIX (the stock market's "fear gauge") from Federal Reserve text, using a frozen FinBERT encoder, a learned additive (Bahdanau style) sentence attention aggregator, and a linear regression head.
 
@@ -11,8 +11,6 @@ The Federal Reserve is the U.S. central bank. Its decisions about interest rates
 1. **Predictive (RQ1):** does the text of Fed communications (FOMC minutes and Humphrey-Hawkins testimony) predict the 10-day forward change in the VIX after each document's release? Prior work shows Fed text moves Treasury yields and equities (Hansen, McMahon and Prat 2018; Lucca and Trebbi 2009), so a short-horizon volatility signal is plausible.
 2. **Temporal generalization (RQ2):** does that relationship hold across U.S. political regimes (Trump 1, Biden, Trump 2)? The Fed is formally independent, but a model trained on pre-2017 text might generalize poorly to later eras.
 
-A full writeup with citations is in `docs/METHODOLOGY.md`.
-
 ## Dataset
 
 326 documents scraped from federalreserve.gov and aligned to a FRED VIX series:
@@ -20,7 +18,7 @@ A full writeup with citations is in `docs/METHODOLOGY.md`.
 - **FOMC minutes**, 1993 to present, 268 documents.
 - **Humphrey-Hawkins / Semiannual Monetary Policy Report testimony**, 1997 to present, 58 documents.
 
-How it was created: `scripts/build_data.py` scrapes the raw HTML and PDF, segments each document into sentences with NLTK Punkt, keeps the first 80 sentences (which carry the policy rationale), and computes the target. `scripts/precompute_embeddings.py` then encodes every sentence once with `yiyanghkust/finbert-pretrain` and mask-weighted mean-pools it into a 768 dimensional vector. The encoder is frozen, so embeddings are deterministic and cached for reuse.
+How it was created: `attention_fed_vix/scripts/build_data.py` scrapes the raw HTML and PDF, segments each document into sentences with NLTK Punkt, keeps the first 80 sentences (which carry the policy rationale), and computes the target. `attention_fed_vix/scripts/precompute_embeddings.py` then encodes every sentence once with `yiyanghkust/finbert-pretrain` and mask-weighted mean-pools it into a 768 dimensional vector. The encoder is frozen, so embeddings are deterministic and cached for reuse.
 
 **Target:** the 10-day forward close-to-close change in the CBOE VIX (FRED `VIXCLS`), aligned to the next trading day so there is no look-ahead leakage on weekend or holiday releases.
 
@@ -38,15 +36,15 @@ How it was created: `scripts/build_data.py` scrapes the raw HTML and PDF, segmen
 
 ## Model
 
-`SentenceAttentionModel` (`src/transcripts_fed_vix/models/attention.py`). For one document, the 80 frozen FinBERT sentence embeddings (each 768 dimensional) are aggregated by additive attention: a small trained network scores each sentence, a softmax turns the scores into weights that sum to one, and the document vector is the weighted sum of the sentence embeddings. A single linear head maps that document vector to one scalar, the predicted 10-day VIX change. Only the attention and head train (about 99,000 parameters); FinBERT stays frozen, the standard choice for a small dataset. Model code lives in `src/transcripts_fed_vix/models/`, the dataset class in `src/transcripts_fed_vix/data/dataset.py`, and the training entry point in `scripts/train_model.py`.
+`SentenceAttentionModel` (`attention_fed_vix/models/attention.py`). For one document, the 80 frozen FinBERT sentence embeddings (each 768 dimensional) are aggregated by additive attention: a small trained network scores each sentence, a softmax turns the scores into weights that sum to one, and the document vector is the weighted sum of the sentence embeddings. A single linear head maps that document vector to one scalar, the predicted 10-day VIX change. Only the attention and head train (about 99,000 parameters); FinBERT stays frozen, the standard choice for a small dataset. Model code lives in `attention_fed_vix/models/`, the dataset class in `attention_fed_vix/data/dataset.py`, and the training entry point in `attention_fed_vix/scripts/train_model.py`.
 
 ## How to train
 
 Local quick demo (no cluster needed):
 
 ```bash
-git clone https://github.com/itszoetom/Transcripts-Fed-VIX-DL.git
-cd Transcripts-Fed-VIX-DL
+git clone https://github.com/itszoetom/attention-fed-vix.git
+cd attention-fed-vix
 pip install -e .
 jupyter notebook notebooks/data_demo.ipynb
 ```
@@ -55,12 +53,12 @@ Full pipeline on Talapas:
 
 ```bash
 ssh ztomlins@login.talapas.uoregon.edu
-cd ~/Transcripts-Fed-VIX-DL
+cd ~/attention-fed-vix
 pip install -e .
-sbatch scripts/sweep.sbatch
+sbatch attention_fed_vix/scripts/sweep.sbatch
 ```
 
-`scripts/sweep.sbatch` runs scrape, sentence segmentation, VIX alignment, FinBERT precompute, a hyperparameter sweep over learning rate in {1e-4, 3e-4, 1e-3} crossed with attention dimension in {128, 256}, per-regime evaluation on the winner, the TF-IDF Ridge baseline, and figure generation. Each stage is idempotent. The winning configuration is saved to `outputs/winning_config.yaml`, and the pooled out-of-sample evaluation plus the directional classifier are produced by `scripts/run_final_eval.py`.
+`attention_fed_vix/scripts/sweep.sbatch` runs scrape, sentence segmentation, VIX alignment, FinBERT precompute, a hyperparameter sweep over learning rate in {1e-4, 3e-4, 1e-3} crossed with attention dimension in {128, 256}, per-regime evaluation on the winner, the TF-IDF Ridge baseline, and figure generation. Each stage is idempotent. The winning configuration is saved to `outputs/winning_config.yaml`, and the pooled out-of-sample evaluation plus the directional classifier are produced by `attention_fed_vix/scripts/run_final_eval.py`.
 
 ## Metrics
 
@@ -103,27 +101,31 @@ Where a signal might actually live (future work): same-day FOMC statements inste
 
 - **GitHub, bundled example:** `data/example/example_documents.json`, `example_embeddings.pt`, `example_model.pt`. The demo notebooks run offline against these.
 - **GitHub, committed results:** `outputs/model.pt` (trained weights, about 400 KB), `outputs/*.json` (per-segment, baseline, pooled, and learning-curve metrics), `outputs/figures/*.png`, and `outputs/winning_config.yaml`.
-- **Talapas, full corpus:** `~/Transcripts-Fed-VIX-DL/data/raw/` (scraped HTML, PDF, text, and VIX cache) and `~/Transcripts-Fed-VIX-DL/data/processed/` (`documents.parquet`, `sentence_embeddings.pt`).
-- **Talapas, all runs:** `~/Transcripts-Fed-VIX-DL/outputs/` (10-day, the primary model) and `~/Transcripts-Fed-VIX-DL/outputs_horizon_3/` (an earlier 3-day exploration).
+- **Talapas, full corpus:** `~/attention-fed-vix/data/raw/` (scraped HTML, PDF, text, and VIX cache) and `~/attention-fed-vix/data/processed/` (`documents.parquet`, `sentence_embeddings.pt`).
+- **Talapas, all runs:** `~/attention-fed-vix/outputs/` (10-day, the primary model) and `~/attention-fed-vix/outputs_horizon_3/` (an earlier 3-day exploration).
 
 ## Repository layout
 
+All code lives in one installable package, `attention_fed_vix/`:
+
 ```
-src/transcripts_fed_vix/
+attention_fed_vix/
   data/       scraping, sentence segmentation, VIX alignment, Dataset class
   models/     frozen FinBERT encoder and additive sentence attention model
   training/   training loop, LR schedule, regression metrics
   utils/      seed, temporal splits, plotting helpers
-configs/      default.yaml (canonical, 10-day) and sweep.yaml (the grid)
-scripts/      build_data, precompute_embeddings, train_model, run_sweep,
+  scripts/    run-me entry points (run with python -m attention_fed_vix.scripts.<name>):
+              build_data, precompute_embeddings, train_model, run_sweep,
               run_regime_analysis, run_baselines, run_final_eval, learning_curve,
-              export_examples, make_plots, make_* (presentation figures),
+              export_examples, make_plots, make_pearson_only_figure,
               train.sbatch, sweep.sbatch
+configs/      default.yaml (canonical, 10-day) and sweep.yaml (the grid)
 notebooks/    data_demo.ipynb (dataset and dataloader walkthrough),
               eval.ipynb (trained-model inference, figures, reported results)
 outputs/      committed model weights, metric JSONs, and result figures
-docs/         METHODOLOGY.md, MILESTONE_REPORT.md, DL410-Project-Proposal.docx
+docs/         MILESTONE_REPORT.md, DL410-Project-Proposal.docx, presentation_final.pptx
 data/example/ 10 sample documents, embeddings, and trained model for the demo
+tests/        import and config sanity checks
 ```
 
 ## Environment

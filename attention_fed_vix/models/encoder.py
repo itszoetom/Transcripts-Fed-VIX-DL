@@ -81,7 +81,7 @@ class FrozenFinBERTEncoder(nn.Module):
         tokenizer_checkpoint: str = DEFAULT_TOKENIZER_CHECKPOINT,
     ) -> None:
         super().__init__()
-        # Local import keeps `import transcripts_fed_vix.models` cheap for
+        # Local import keeps `import attention_fed_vix.models` cheap for
         # callers that just want config-level introspection.
         from transformers import AutoTokenizer, BertModel
 

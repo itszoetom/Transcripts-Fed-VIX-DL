@@ -2,7 +2,7 @@
 
 What this script does:
 
-  1. Loads the model trained by scripts/train_model.py (outputs/model.pt).
+  1. Loads the model trained by attention_fed_vix/scripts/train_model.py (outputs/model.pt).
   2. Re-runs inference on each temporal segment:
         regime1 = 2017-01-20 to 2021-01-20
         regime2 = 2021-01-20 to 2025-01-20
@@ -31,11 +31,11 @@ import torch
 import yaml
 from torch.utils.data import DataLoader
 
-from transcripts_fed_vix.data.dataset import EmbeddingDocDataset, collate_padded
-from transcripts_fed_vix.models import SentenceAttentionModel
-from transcripts_fed_vix.models.attention import attention_config_from_dict
-from transcripts_fed_vix.training.eval import regression_metrics
-from transcripts_fed_vix.utils import make_temporal_splits, SplitDates
+from attention_fed_vix.data.dataset import EmbeddingDocDataset, collate_padded
+from attention_fed_vix.models import SentenceAttentionModel
+from attention_fed_vix.models.attention import attention_config_from_dict
+from attention_fed_vix.training.eval import regression_metrics
+from attention_fed_vix.utils import make_temporal_splits, SplitDates
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("regime_analysis")

@@ -78,7 +78,7 @@ class SentenceAttentionModel(nn.Module):
     """Frozen-encoder + additive-attention aggregator + linear regression head.
 
     The encoder itself is *not* held inside this module, embeddings are
-    pre-computed (see scripts/precompute_embeddings.py) and passed in via the
+    pre-computed (see attention_fed_vix/scripts/precompute_embeddings.py) and passed in via the
     forward pass. This keeps the only trained parameters here (attention W/b/v
     and the regression head w/b_reg), and keeps the model object cheap to
     save/load.

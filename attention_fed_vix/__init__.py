@@ -1,4 +1,4 @@
-"""transcripts_fed_vix: Predict 10-day VIX change from Federal Reserve text.
+"""attention_fed_vix: Predict 10-day VIX change from Federal Reserve text.
 
 Architecture overview (see README + configs/default.yaml for details):
 

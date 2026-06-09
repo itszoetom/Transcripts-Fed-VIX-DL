@@ -1,11 +1,11 @@
 """Build the processed dataset (scrape -> segment -> VIX-align -> parquet).
 
-Thin CLI wrapper around `transcripts_fed_vix.data.build.build_processed_dataset`.
+Thin CLI wrapper around `attention_fed_vix.data.build.build_processed_dataset`.
 Idempotent: re-runs are no-ops if the processed parquet already exists.
 
 Usage:
-    python scripts/build_data.py --config configs/default.yaml
-    python scripts/build_data.py --config configs/default.yaml --force
+    python -m attention_fed_vix.scripts.build_data --config configs/default.yaml
+    python -m attention_fed_vix.scripts.build_data --config configs/default.yaml --force
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from pathlib import Path
 
 import yaml
 
-from transcripts_fed_vix.data.build import build_processed_dataset
+from attention_fed_vix.data.build import build_processed_dataset
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 

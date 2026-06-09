@@ -12,7 +12,7 @@ End-to-end flow:
        outputs/train_metrics.json.
 
 The per-regime evaluation (R^2 across inauguration-day boundaries) lives in
-scripts/run_regime_analysis.py; that script depends on the best model dumped
+attention_fed_vix/scripts/run_regime_analysis.py; that script depends on the best model dumped
 here.
 """
 
@@ -30,14 +30,14 @@ import torch
 import yaml
 from torch.utils.data import DataLoader
 
-from transcripts_fed_vix.data.build import build_processed_dataset
-from transcripts_fed_vix.data.dataset import EmbeddingDocDataset, collate_padded
-from transcripts_fed_vix.models import SentenceAttentionModel
-from transcripts_fed_vix.models.attention import AttentionConfig, attention_config_from_dict
-from transcripts_fed_vix.training import train
-from transcripts_fed_vix.training.eval import regression_metrics
-from transcripts_fed_vix.training.loop import TrainConfig
-from transcripts_fed_vix.utils import set_seed, make_temporal_splits, SplitDates
+from attention_fed_vix.data.build import build_processed_dataset
+from attention_fed_vix.data.dataset import EmbeddingDocDataset, collate_padded
+from attention_fed_vix.models import SentenceAttentionModel
+from attention_fed_vix.models.attention import AttentionConfig, attention_config_from_dict
+from attention_fed_vix.training import train
+from attention_fed_vix.training.eval import regression_metrics
+from attention_fed_vix.training.loop import TrainConfig
+from attention_fed_vix.utils import set_seed, make_temporal_splits, SplitDates
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("train_model")
@@ -115,7 +115,7 @@ def main() -> None:
     # ----- embeddings (idempotent) -----
     if not embeddings_path.exists():
         raise FileNotFoundError(
-            f"{embeddings_path} not found. Run scripts/precompute_embeddings.py first."
+            f"{embeddings_path} not found. Run attention_fed_vix/scripts/precompute_embeddings.py first."
         )
 
     # ----- temporal splits -----

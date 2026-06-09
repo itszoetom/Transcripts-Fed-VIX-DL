@@ -15,7 +15,7 @@ subset ends just before the val boundary (temporal order preserved, no shuffle).
 
 Run on Talapas from the repo root:
 
-    python scripts/learning_curve.py \
+    python -m attention_fed_vix.scripts.learning_curve \
         --config outputs/winning_config.yaml \
         --out    outputs/final_eval
 """
@@ -39,13 +39,13 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from transcripts_fed_vix.data.dataset import EmbeddingDocDataset, collate_padded
-from transcripts_fed_vix.models import SentenceAttentionModel
-from transcripts_fed_vix.models.attention import attention_config_from_dict
-from transcripts_fed_vix.training import train
-from transcripts_fed_vix.training.loop import TrainConfig
-from transcripts_fed_vix.training.eval import regression_metrics
-from transcripts_fed_vix.utils import set_seed, make_temporal_splits, SplitDates
+from attention_fed_vix.data.dataset import EmbeddingDocDataset, collate_padded
+from attention_fed_vix.models import SentenceAttentionModel
+from attention_fed_vix.models.attention import attention_config_from_dict
+from attention_fed_vix.training import train
+from attention_fed_vix.training.loop import TrainConfig
+from attention_fed_vix.training.eval import regression_metrics
+from attention_fed_vix.utils import set_seed, make_temporal_splits, SplitDates
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("learning_curve")

@@ -16,8 +16,8 @@ import yaml
 
 
 def test_package_imports():
-    import transcripts_fed_vix  # noqa: F401
-    from transcripts_fed_vix import data, models, training, utils  # noqa: F401
+    import attention_fed_vix  # noqa: F401
+    from attention_fed_vix import data, models, training, utils  # noqa: F401
 
 
 def test_default_config_schema():
@@ -45,8 +45,8 @@ def test_sentence_attention_model_forward():
     Uses random embeddings so this test does NOT depend on transformers/FinBERT
     being installed, it only exercises the trained-component graph.
     """
-    from transcripts_fed_vix.models import SentenceAttentionModel
-    from transcripts_fed_vix.models.attention import AttentionConfig
+    from attention_fed_vix.models import SentenceAttentionModel
+    from attention_fed_vix.models.attention import AttentionConfig
 
     cfg = AttentionConfig(embed_dim=16, attn_dim=8, dropout=0.0)  # tiny for the test
     model = SentenceAttentionModel(cfg)

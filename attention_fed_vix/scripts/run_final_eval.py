@@ -29,7 +29,7 @@ worsens MSE, so a "confidence boost" is a non-starter. Reframing as direction
 Run on Talapas (where data/processed/{documents.parquet,sentence_embeddings.pt}
 live), from the repo root:
 
-    python scripts/run_final_eval.py \
+    python -m attention_fed_vix.scripts.run_final_eval \
         --config outputs/winning_config.yaml \
         --model  outputs/model.pt \
         --out    outputs/final_eval
@@ -60,11 +60,11 @@ import matplotlib.pyplot as plt
 
 from sklearn.metrics import roc_auc_score, roc_curve, confusion_matrix
 
-from transcripts_fed_vix.data.dataset import EmbeddingDocDataset, collate_padded
-from transcripts_fed_vix.models import SentenceAttentionModel
-from transcripts_fed_vix.models.attention import attention_config_from_dict
-from transcripts_fed_vix.training.eval import regression_metrics
-from transcripts_fed_vix.utils import set_seed, make_temporal_splits, SplitDates
+from attention_fed_vix.data.dataset import EmbeddingDocDataset, collate_padded
+from attention_fed_vix.models import SentenceAttentionModel
+from attention_fed_vix.models.attention import attention_config_from_dict
+from attention_fed_vix.training.eval import regression_metrics
+from attention_fed_vix.utils import set_seed, make_temporal_splits, SplitDates
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("final_eval")

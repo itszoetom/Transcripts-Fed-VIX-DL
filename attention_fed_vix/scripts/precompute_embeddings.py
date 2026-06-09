@@ -9,7 +9,7 @@ each training step, and it produces no information leakage: the encoder is
 the same model with the same weights regardless of when it runs.
 
 Usage:
-    python scripts/precompute_embeddings.py --config configs/default.yaml
+    python -m attention_fed_vix.scripts.precompute_embeddings --config configs/default.yaml
 
 Outputs:
     data/processed/sentence_embeddings.pt
@@ -30,7 +30,7 @@ import torch
 import yaml
 from tqdm import tqdm
 
-from transcripts_fed_vix.models import FrozenFinBERTEncoder
+from attention_fed_vix.models import FrozenFinBERTEncoder
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("precompute_embeddings")

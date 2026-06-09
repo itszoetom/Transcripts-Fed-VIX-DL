@@ -18,8 +18,8 @@ hyperparameters + val/regime metrics + status, and `outputs/sweep/sweep_table.cs
 provides the same information for spreadsheet inspection.
 
 Usage:
-    python scripts/run_sweep.py --config configs/sweep.yaml
-    python scripts/run_sweep.py --config configs/sweep.yaml --skip-completed
+    python -m attention_fed_vix.scripts.run_sweep --config configs/sweep.yaml
+    python -m attention_fed_vix.scripts.run_sweep --config configs/sweep.yaml --skip-completed
 
 The --skip-completed flag is the safety mechanism for re-running on Talapas
 after an interrupted sweep: any run whose eval_summary.json already exists is
@@ -47,13 +47,13 @@ import torch
 import yaml
 from torch.utils.data import DataLoader
 
-from transcripts_fed_vix.data.dataset import EmbeddingDocDataset, collate_padded
-from transcripts_fed_vix.models import SentenceAttentionModel
-from transcripts_fed_vix.models.attention import attention_config_from_dict
-from transcripts_fed_vix.training import train
-from transcripts_fed_vix.training.eval import regression_metrics
-from transcripts_fed_vix.training.loop import TrainConfig
-from transcripts_fed_vix.utils import set_seed, make_temporal_splits, SplitDates
+from attention_fed_vix.data.dataset import EmbeddingDocDataset, collate_padded
+from attention_fed_vix.models import SentenceAttentionModel
+from attention_fed_vix.models.attention import attention_config_from_dict
+from attention_fed_vix.training import train
+from attention_fed_vix.training.eval import regression_metrics
+from attention_fed_vix.training.loop import TrainConfig
+from attention_fed_vix.utils import set_seed, make_temporal_splits, SplitDates
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("run_sweep")

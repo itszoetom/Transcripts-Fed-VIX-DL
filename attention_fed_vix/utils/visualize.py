@@ -2,7 +2,7 @@
 
 Exposes one function per figure. Each takes paths or dataframes plus the model,
 writes a PNG to the configured output directory, and returns the saved path.
-`scripts/make_plots.py` is the CLI orchestrator that calls all of these.
+`attention_fed_vix/scripts/make_plots.py` is the CLI orchestrator that calls all of these.
 
 Figures (the project's core 5):
     1. Training curve: train MSE + val MSE per epoch with the best-epoch marker

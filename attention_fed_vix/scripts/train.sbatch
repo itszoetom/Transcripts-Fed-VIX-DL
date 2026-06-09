@@ -29,7 +29,7 @@ conda activate base
 # conda env's libstdc++ to fix `GLIBCXX_3.4.30 not found` on `import nltk`.
 export LD_LIBRARY_PATH="$CONDA_PREFIX/lib:${LD_LIBRARY_PATH:-}"
 
-cd /home/ztomlins/Transcripts-Fed-VIX-DL
+cd /home/ztomlins/attention-fed-vix
 
 # Quick environment sanity check, prints to the .out log so failures are easy
 # to triage.
@@ -42,22 +42,22 @@ python -c "import torch; print(f'torch {torch.__version__} | cuda available: {to
 # safe and skips already-finished stages.
 
 # 1. Build the processed dataset (scrape -> segment -> VIX-align -> parquet).
-python scripts/build_data.py --config configs/default.yaml
+python -m attention_fed_vix.scripts.build_data --config configs/default.yaml
 
 # 2. Pre-compute frozen FinBERT sentence embeddings (cached to disk).
-python scripts/precompute_embeddings.py --config configs/default.yaml
+python -m attention_fed_vix.scripts.precompute_embeddings --config configs/default.yaml
 
 # 3. Train the sentence-attention model with early stopping.
-python scripts/train_model.py --config configs/default.yaml
+python -m attention_fed_vix.scripts.train_model --config configs/default.yaml
 
 # 4. Run the per-regime evaluation (R^2 / Pearson r on each test regime).
-python scripts/run_regime_analysis.py --config configs/default.yaml
+python -m attention_fed_vix.scripts.run_regime_analysis --config configs/default.yaml
 
 # 5. Run the TF-IDF Ridge baseline on the same splits.
-python scripts/run_baselines.py --config configs/default.yaml
+python -m attention_fed_vix.scripts.run_baselines --config configs/default.yaml
 
 # 6. Generate the standard set of project figures (training curves, scatter,
 #    residuals over time, attention heatmaps, etc.).
-python scripts/make_plots.py --config configs/default.yaml
+python -m attention_fed_vix.scripts.make_plots --config configs/default.yaml
 
 echo "Pipeline complete. See outputs/ for model + metrics + figures."
