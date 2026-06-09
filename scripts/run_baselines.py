@@ -6,7 +6,7 @@ apples baseline on the same temporal splits.
 
 Baseline:
     TF-IDF + Ridge regression
-        Continuous regression target (3-day VIX change).
+        Continuous regression target (10-day VIX change).
         Compared to the deep model on MSE, R^2, and Pearson r.
 
 The baseline uses the same train / val / test1 / test2 / test3 segments as

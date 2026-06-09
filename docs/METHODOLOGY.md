@@ -20,11 +20,11 @@ Together, FOMC minutes and Humphrey-Hawkins testimony form the most policy-rich 
 
 The CBOE Volatility Index (VIX) is a real-time index published by the Chicago Board Options Exchange. It is computed from the prices of short-dated S&P 500 options and is designed to express the market's expectation of 30-day forward volatility in the S&P 500. Higher VIX means the market is paying more for protection against large moves; lower VIX means the market expects calm. Whaley (2000) coined the now-standard nickname "investor fear gauge."
 
-We use the *change* in VIX (specifically, the 3-day close-to-close change) as the target rather than the VIX level. A change target asks the right question for our purposes: did the document move expected volatility, conditional on whatever it was already? Levels are dominated by the broad volatility regime (e.g., post-2008, COVID), which has nothing to do with the text content of a particular release.
+We use the *change* in VIX (specifically, the 10-day close-to-close change) as the target rather than the VIX level. A change target asks the right question for our purposes: did the document move expected volatility, conditional on whatever it was already? Levels are dominated by the broad volatility regime (e.g., post-2008, COVID), which has nothing to do with the text content of a particular release.
 
 ### 0.3 Why Fed text could move the VIX
 
-Fed communications are information-dense for two reasons: the Fed is deliberately the most consequential single source of monetary-policy signal in U.S. financial markets, and its language is calibrated. Even small word choices (for example, "patient" vs. "data-dependent") are read as meaningful. If a release sounds hawkish (more concerned about inflation, willing to tighten), or surprising in any direction, traders update their expectations about future policy, which raises uncertainty about the path of asset prices, which shows up as higher implied volatility (higher VIX). If the release is calm and predictable, the opposite. Lucca and Trebbi (2009), Hansen, McMahon and Prat (2018), and Boukus and Rosenberg (2006) document that FOMC text moves Treasury yields and equity-market measures in statistically reliable ways. The 3-day forward VIX change is a natural and previously studied (if noisy) target for this kind of analysis.
+Fed communications are information-dense for two reasons: the Fed is deliberately the most consequential single source of monetary-policy signal in U.S. financial markets, and its language is calibrated. Even small word choices (for example, "patient" vs. "data-dependent") are read as meaningful. If a release sounds hawkish (more concerned about inflation, willing to tighten), or surprising in any direction, traders update their expectations about future policy, which raises uncertainty about the path of asset prices, which shows up as higher implied volatility (higher VIX). If the release is calm and predictable, the opposite. Lucca and Trebbi (2009), Hansen, McMahon and Prat (2018), and Boukus and Rosenberg (2006) document that FOMC text moves Treasury yields and equity-market measures in statistically reliable ways. The 10-day forward VIX change is a natural and previously studied (if noisy) target for this kind of analysis.
 
 ### 0.4 Why the political regime matters
 
@@ -32,7 +32,7 @@ Different U.S. presidents have had very different relationships with the Fed. Th
 
 ## 1. Research questions
 
-**RQ1 (predictive):** Does the text of Federal Reserve policy communications (FOMC minutes and Humphrey-Hawkins testimony) predict the 3-day close-to-close change in the CBOE VIX following each document's release?
+**RQ1 (predictive):** Does the text of Federal Reserve policy communications (FOMC minutes and Humphrey-Hawkins testimony) predict the 10-day close-to-close change in the CBOE VIX following each document's release?
 
 **RQ2 (temporal generalization across political regimes):** Does the text-to-volatility relationship shift across U.S. political regimes: Obama (pre-2017), Trump 1 (2017-01-20 to 2021-01-20), Biden (2021-01-20 to 2025-01-20), Trump 2 (2025-01-20 to present)?
 
@@ -45,7 +45,7 @@ RQ1 is the modeling problem. RQ2 is answered descriptively by computing R^2 and 
 - **FOMC minutes (1993 to present, 268 documents):** Eight regular meetings per year plus occasional emergency releases. Released about three weeks after each meeting. The *release date* (not the meeting date) is used for VIX alignment because the release is when markets could observe and react to the text.
 - **Humphrey-Hawkins / Semiannual Monetary Policy Report testimony (1997 to present, 58 documents):** The Fed Chair's twice-yearly Congressional testimony.
 
-Total corpus: 326 documents after VIX alignment (recent releases without 3-day forward VIX data are dropped).
+Total corpus: 326 documents after VIX alignment (recent releases without 10-day forward VIX data are dropped).
 
 ### 2.2 Scraping
 
@@ -66,7 +66,7 @@ Raw HTTP bytes (HTML + PDF), extracted plain text, and the FRED VIX series are a
 
 Pulled from FRED via `fredapi` (series `VIXCLS`, the official CBOE VIX closing value as redistributed by the St. Louis Fed). FRED is preferred over third-party tickers because the series is reproducible from `(API key, ticker)` alone.
 
-**Alignment rule (next-trading-day):** For each document release date `r`, let `t` be the first trading day with `t >= r`. The 3-day forward change is `VIX[t+3] - VIX[t]` where the index advances by *trading* days (so a Friday release rolls to the following Wednesday). The "next" trading day (not "previous") is used because the previous would introduce look-ahead leakage (using market data from before the document was released).
+**Alignment rule (next-trading-day):** For each document release date `r`, let `t` be the first trading day with `t >= r`. The 10-day forward change is `VIX[t+10] - VIX[t]` where the index advances by *trading* days (so weekend and holiday releases roll forward over trading days, not calendar days). The "next" trading day (not "previous") is used because the previous would introduce look-ahead leakage (using market data from before the document was released).
 
 ## 3. Text preprocessing
 
@@ -114,7 +114,7 @@ s_i    = v^T u_i                     # scalar score per sentence
 s_i   := s_i if mask_i = 1 else -inf  # padded sentences ignored by softmax
 alpha  = softmax(s)                  # (N,) attention weights
 d      = sum_i alpha_i * h_i         # (768,) document vector
-y      = w^T d + b_reg               # scalar prediction (3-day VIX change)
+y      = w^T d + b_reg               # scalar prediction (10-day VIX change)
 ```
 
 Here `h_i` is the i-th sentence embedding (768-d), `W` is a `(128, 768)` matrix, `b` is a `(128,)` bias, and `v` is a `(128,)` query vector. About 99,000 trainable parameters total.

@@ -188,13 +188,13 @@ def plot_predicted_vs_actual(
                     color="gray", linestyle="--", alpha=0.6, label="y = x")
             ax.set_xlim(lo - pad, hi + pad)
             ax.set_ylim(lo - pad, hi + pad)
-        ax.set_xlabel("True 3-day VIX change")
+        ax.set_xlabel("True 10-day VIX change")
         ax.set_ylabel("Predicted")
         ax.set_title(f"{name}  (n={len(df)})")
         ax.grid(True, alpha=0.3)
         if len(tgts) > 0:
             ax.legend(loc="upper left", fontsize=8)
-    fig.suptitle("Predicted vs actual 3-day VIX change, by temporal segment", y=1.01)
+    fig.suptitle("Predicted vs actual 10-day VIX change, by temporal segment", y=1.01)
     fig.tight_layout()
     return _save(fig, out_path)
 

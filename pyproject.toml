@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "transcripts-fed-vix"
 version = "0.1.0"
-description = "Predicting 3-day VIX change from Fed text via frozen FinBERT + learned sentence attention."
+description = "Predicting 10-day VIX change from Fed text via frozen FinBERT + learned sentence attention."
 readme = "README.md"
 # Talapas target environment uses Python 3.12 (miniforge3 base). We declare >=3.9
 # rather than >=3.10 so that the demo notebook is runnable from a wider set of

@@ -8,9 +8,9 @@
 #       -> frozen FinBERT (yiyanghkust/finbert-pretrain) + mean-pool per sentence
 #         -> additive (Bahdanau-style) attention aggregation         [TRAINED]
 #           -> linear regression head                                [TRAINED]
-#             -> predicted 3-day forward VIX change
+#             -> predicted 10-day forward VIX change
 #
-# Target: 3-day close-to-close VIX change, next-trading-day aligned. Splits
+# Target: 10-day close-to-close VIX change, next-trading-day aligned. Splits
 # anchored to U.S. presidential inauguration days (Trump1, Biden, Trump2).
 #
 # Use this config as the canonical reference: all scripts read it and have no
@@ -38,9 +38,9 @@ data:
   # full rationale.
   sentence_cap: 80
 
-  # 3-day close-to-close VIX change as target. When release dates fall on a
+  # 10-day close-to-close VIX change as target. When release dates fall on a
   # weekend/holiday, align to the NEXT trading day (no look-ahead leakage).
-  target_horizon_trading_days: 3
+  target_horizon_trading_days: 10
 
 # ---------------------------------------------------------------------------
 # Temporal splits, locked by design discussion

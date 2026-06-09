@@ -60,7 +60,7 @@ class ModelOutput(NamedTuple):
     """Forward-pass output bundle.
 
     Attributes:
-        prediction:         (B,) predicted 3-day VIX change.
+        prediction:         (B,) predicted 10-day VIX change.
         attention_weights:  (B, N) attention weight per sentence (softmaxed,
                             padded positions == 0). Returned so the model is
                             inspectable / visualizable after training.

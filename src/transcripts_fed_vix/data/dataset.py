@@ -185,7 +185,7 @@ def get_example_dataloader(
         A torch DataLoader yielding dicts with keys:
             embeddings: (B, N_max, 768), frozen-FinBERT sentence embeddings
             mask:       (B, N_max)     , 0/1 mask, 1 = real sentence
-            target:     (B,)           , 3-day forward VIX change
+            target:     (B,)           , 10-day forward VIX change
             doc_ids:    list[str]      , document identifiers
             release_dates: list[Timestamp]
     """

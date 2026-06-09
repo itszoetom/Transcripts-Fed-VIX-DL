@@ -27,6 +27,7 @@ slurm_logs/
 !outputs/
 !outputs/model.pt
 !outputs/*.json
+!outputs/*.yaml
 !outputs/figures/
 !outputs/figures/*.png
 
@@ -54,3 +55,6 @@ data/*.parquet
 
 # Local secrets
 .env
+
+# Local cleanup staging (safe to delete)
+_archive/

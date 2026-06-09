@@ -1,8 +1,8 @@
 """VIX data acquisition and target construction.
 
 Pulls the CBOE Volatility Index daily-close series (FRED ticker VIXCLS) and
-aligns each Fed-document release date to its 3-day forward close-to-close VIX
-change.
+aligns each Fed-document release date to its forward close-to-close VIX change
+over the configured horizon (10 trading days for the reported model).
 
 Why FRED VIXCLS:
     VIXCLS is the official CBOE closing value as redistributed by the St. Louis
@@ -22,9 +22,10 @@ Why next-trading-day alignment:
     for the academic write-up.
 
 Target construction:
-    Let r_t be the close on the aligned trading day t. The 3-day forward change
-    is r_{t+3} - r_t, using *trading* days (so Friday + 3 trading days = the
-    following Wednesday). Both close values are stored alongside the difference
+    Let r_t be the close on the aligned trading day t. The h-day forward change
+    is r_{t+h} - r_t, using *trading* days (so weekend and holiday gaps roll
+    forward over trading days, not calendar days). Both close values are stored
+    alongside the difference
     so the target can be re-derived or alternative targets explored without
     re-running this step.
 """
@@ -44,8 +45,10 @@ logger = logging.getLogger(__name__)
 # FRED series identifier for the CBOE VIX closing value.
 VIX_SERIES_ID = "VIXCLS"
 
-# Target horizon in *trading* days. Locked to 3 by the project spec.
-TARGET_HORIZON_TRADING_DAYS = 3
+# Default target horizon in *trading* days. The reported model uses 10; an
+# earlier 3-day exploration is kept as a separate run. Scripts always pass the
+# horizon from the config, so this default only applies to direct calls.
+TARGET_HORIZON_TRADING_DAYS = 10
 
 
 @dataclass
@@ -60,7 +63,7 @@ class VixAlignment:
         vix_t:                VIX close on aligned_trading_date.
         vix_t_plus_h:         VIX close `TARGET_HORIZON_TRADING_DAYS` trading
                               days later.
-        target:               vix_t_plus_h - vix_t (3-day forward change).
+        target:               vix_t_plus_h - vix_t (h-day forward change).
     """
 
     release_date: date

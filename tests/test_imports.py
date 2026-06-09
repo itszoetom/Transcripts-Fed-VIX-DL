@@ -31,7 +31,7 @@ def test_default_config_schema():
 
     # Critical leaf values, anything the scripts dereference.
     assert cfg["data"]["sentence_cap"] == 80
-    assert cfg["data"]["target_horizon_trading_days"] == 3
+    assert cfg["data"]["target_horizon_trading_days"] == 10
     assert cfg["splits"]["train_end_date"] == "2017-01-20"
     assert cfg["splits"]["regime2_start_date"] == "2021-01-20"
     assert cfg["model"]["freeze_encoder"] is True

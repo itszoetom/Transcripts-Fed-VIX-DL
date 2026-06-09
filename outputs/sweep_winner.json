@@ -1,0 +1,14 @@
+{
+  "run_name": "attn_dim=128_learning_rate=0.001",
+  "attn_dim": 128,
+  "learning_rate": 0.001,
+  "best_epoch": 23,
+  "val_mse": 6.594983384206566,
+  "val_r2": 0.08344694713695155,
+  "val_pearson_r": 0.3409793336494742,
+  "regime1_pearson_r": 0.0749314014413274,
+  "regime2_pearson_r": 0.16650329416299142,
+  "regime3_pearson_r": 0.3307989783163029,
+  "n_trainable_params": 99329,
+  "status": "ok"
+}

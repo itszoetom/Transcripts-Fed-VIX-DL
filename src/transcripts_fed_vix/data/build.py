@@ -23,7 +23,7 @@ Output columns (one row per document):
 The function is idempotent: re-running with everything already on disk just
 returns the cached parquet. Pass `force=True` to rebuild from scraped raw
 files (without re-downloading). The target horizon is read from the caller
-(default 3 trading days, matching the vix.py default) and recorded in
+(default 10 trading days, matching the vix.py default) and recorded in
 build_summary.json so downstream code can verify which horizon a cached
 parquet was built with.
 """

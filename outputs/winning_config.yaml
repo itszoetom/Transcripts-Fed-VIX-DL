@@ -1,0 +1,37 @@
+seed: 42
+data:
+  raw_dir: data/raw
+  processed_dir: data/processed
+  documents_file: documents.parquet
+  embeddings_file: sentence_embeddings.pt
+  sentence_cap: 80
+  target_horizon_trading_days: 10
+splits:
+  train_end_date: '2017-01-20'
+  regime2_start_date: '2021-01-20'
+  regime3_start_date: '2025-01-20'
+  val_fraction: 0.15
+model:
+  encoder_checkpoint: yiyanghkust/finbert-pretrain
+  freeze_encoder: true
+  embed_dim: 768
+  max_sentence_tokens: 256
+  sentence_encode_batch_size: 32
+  attn_dim: 128
+  dropout: 0.1
+  device: auto
+training:
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  batch_size: 8
+  epochs: 100
+  warmup_fraction: 0.1
+  grad_clip_norm: 1.0
+  early_stop_patience: 10
+outputs:
+  dir: outputs
+  model_file: model.pt
+  metrics_file: train_metrics.json
+  final_report_file: final_report.json
+  regime_report_file: regime_analysis.json
+  baselines_file: baseline_metrics.json
